@@ -1,11 +1,12 @@
-# Render Blueprint — Iran-US OSINT Monitor
+# Render Blueprint — Iran-US OSINT Monitor (v14-noGPT)
 # 사용법:
 #   1. 이 저장소를 GitHub 에 푸시
 #   2. Render 대시보드 → New → Blueprint → 저장소 선택
-#   3. Render 가 이 파일을 읽어 자동으로 Web + Postgres + Cron 3종을 생성한다
+#   3. Render 가 이 파일을 읽어 자동으로 Web + Postgres + Cron 2종을 생성한다
 #
 # 필수 환경변수 (Render 대시보드에서 수동 설정):
 #   - ADMIN_TOKEN      : 임의의 랜덤 문자열 (cron 이 /pipeline/run 호출 시 사용)
+#   - WEB_URL          : 웹 서비스 URL (예: https://iran-osint-web.onrender.com)
 #
 # 자동 설정 (render.yaml 이 연결):
 #   - DATABASE_URL     : Postgres 인스턴스에서 자동 주입
@@ -33,7 +34,7 @@ services:
       - key: SITE_TITLE
         value: "이란-미국 전쟁 OSINT 실시간 모니터"
       - key: ADMIN_TOKEN
-        sync: false    # 동일. `openssl rand -hex 32` 로 생성 권장
+        sync: false    # Render 대시보드에서 직접 입력. `openssl rand -hex 32` 로 생성 권장
       - key: DATABASE_URL
         fromDatabase:
           name: iran-osint-db
@@ -45,16 +46,12 @@ services:
   - type: cron
     name: iran-osint-hourly-ingest
     env: docker
-    plan: free
     schedule: "0 * * * *"   # 매시 정각
     dockerCommand: |
       sh -c 'curl -fsS -X POST "$WEB_URL/pipeline/run" -H "X-Admin-Token: $ADMIN_TOKEN" --max-time 300 || echo "ingest call failed"'
     envVars:
       - key: WEB_URL
-        fromService:
-          type: web
-          name: iran-osint-web
-          property: url
+        sync: false    # 배포 후 웹 서비스 URL 수동 입력 (예: https://iran-osint-web.onrender.com)
       - key: ADMIN_TOKEN
         sync: false
 
@@ -64,15 +61,11 @@ services:
   - type: cron
     name: iran-osint-daily-refresh
     env: docker
-    plan: free
     schedule: "0 0 * * *"   # 매일 00:00 UTC (한국 09:00)
     dockerCommand: |
       sh -c 'curl -fsS -X POST "$WEB_URL/pipeline/refresh" -H "X-Admin-Token: $ADMIN_TOKEN" --max-time 120 || echo "refresh call failed"'
     envVars:
       - key: WEB_URL
-        fromService:
-          type: web
-          name: iran-osint-web
-          property: url
+        sync: false    # 배포 후 웹 서비스 URL 수동 입력
       - key: ADMIN_TOKEN
         sync: false
