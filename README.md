@@ -1,4 +1,4 @@
-# Iran-US War OSINT Monitor v20d
+# Iran-US War OSINT Monitor
 
 Real-time OSINT dashboard tracking the 2026 Iran War (started Feb 28).
 
