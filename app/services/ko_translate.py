@@ -161,6 +161,11 @@ EVENT_TYPE_KO: dict[str, str] = {
 }
 
 VERIFIED_STATUS_KO: dict[str, str] = {
+    "confirmed": "확인됨",
+    "likely": "유력",
+    "claimed": "주장",
+    "disputed": "논쟁중",
+    "retracted": "철회됨",
     "verified": "검증 완료",
     "partially_verified": "부분 검증",
     "unverified": "미검증",

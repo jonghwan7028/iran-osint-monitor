@@ -91,6 +91,24 @@
             box-shadow: 0 0 0 3px rgba(48, 209, 88, 0.25);
             animation: pulse-live 1.8s ease-in-out infinite;
         }
+        .badge.demo {
+            background: var(--warning-soft); color: #b86900;
+            position: relative; padding-left: 18px;
+        }
+        .badge.demo::before {
+            content: ''; position: absolute; top: 50%; left: 8px;
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--warning); transform: translateY(-50%);
+        }
+        .badge.offline {
+            background: var(--surface-tint); color: var(--text-dim);
+            position: relative; padding-left: 18px;
+        }
+        .badge.offline::before {
+            content: ''; position: absolute; top: 50%; left: 8px;
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--text-dim); transform: translateY(-50%);
+        }
         @keyframes pulse-live { 0%, 100% { opacity: 1 } 50% { opacity: 0.55 } }
 
         .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -303,7 +321,7 @@
 
         /* Main grid */
         .main-grid {
-            display: grid; grid-template-columns: 2.2fr 1fr; gap: 16px;
+            display: grid; grid-template-columns: 1fr; gap: 16px;
             margin-bottom: 24px;
         }
         .card {
@@ -495,6 +513,12 @@
         .pill.verified { background: var(--success-soft); color: #1f8b3a; }
         .pill.partially_verified { background: var(--warning-soft); color: #b86900; }
         .pill.unverified { background: var(--danger-soft); color: var(--danger); }
+        /* 5-level verification badges */
+        .pill.confirmed { background: var(--success-soft); color: #1f8b3a; }
+        .pill.likely { background: var(--accent-soft); color: var(--accent); }
+        .pill.claimed { background: var(--warning-soft); color: #b86900; }
+        .pill.disputed { background: rgba(255, 149, 0, 0.15); color: #cc5500; }
+        .pill.retracted { background: var(--danger-soft); color: var(--danger); text-decoration: line-through; }
         .severity-high { color: var(--danger); font-weight: 600; }
         .severity-medium { color: #b86900; font-weight: 500; }
         .severity-low { color: var(--accent); font-weight: 500; }
@@ -518,9 +542,49 @@
         }
         .term:hover::after { opacity: 1; color: inherit; }
 
+        /* ── Bottom footer (pipeline + feedback) ── */
+        .bottom-footer {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+            max-width: 1200px; margin: 32px auto 0; padding: 0 20px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .bottom-footer { grid-template-columns: 1fr; }
+        }
+        /* ── Pipeline compact bar ── */
+        .pipe-compact {
+            background: var(--surface); border-radius: 16px;
+            border: 1px solid var(--border); padding: 16px 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .pipe-compact-header {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+        }
+        .pipe-compact-title {
+            font-size: 12px; font-weight: 600; color: var(--text-muted);
+        }
+        .pipe-compact-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+        }
+        .pipe-mini {
+            text-align: center; padding: 6px 4px;
+            background: var(--surface-tint); border-radius: var(--radius-sm);
+        }
+        .pipe-mini-val { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1; }
+        .pipe-mini-lbl { font-size: 8px; color: var(--text-dim); margin-top: 2px; text-transform: uppercase; }
+        .pipe-compact-detail {
+            display: none; margin-top: 10px; padding-top: 10px;
+            border-top: 1px solid var(--border);
+        }
+        .pipe-compact-detail.visible { display: block; }
+        .pipe-detail-toggle {
+            font-size: 9px; color: var(--accent); background: none; border: none;
+            cursor: pointer; font-weight: 600; margin-top: 8px;
+        }
+        .pipe-detail-toggle:hover { text-decoration: underline; }
+
         /* ── Feedback widget ── */
         .fb-section {
-            max-width: 680px; margin: 32px auto 0; padding: 0 20px;
         }
         .fb-card {
             background: var(--surface); border-radius: 16px;
@@ -641,6 +705,196 @@
             padding: 40px 0; text-align: center; color: var(--text-muted); font-size: 13px;
         }
 
+        /* ── Source type badges (#4) ── */
+        .src-badge {
+            display: inline-flex; align-items: center; gap: 3px;
+            font-size: 9.5px; font-weight: 600; padding: 2px 7px;
+            border-radius: 999px; white-space: nowrap;
+        }
+        .src-gov { background: rgba(0,113,227,0.1); color: var(--accent); }
+        .src-wire { background: rgba(48,209,88,0.12); color: #1f8b3a; }
+        .src-broadcast { background: rgba(255,149,0,0.1); color: #b86900; }
+        .src-press { background: rgba(108,63,199,0.1); color: #6c3fc7; }
+        .src-osint { background: rgba(255,59,48,0.08); color: var(--danger); }
+        .src-ref { background: var(--surface-tint); color: var(--text-muted); }
+        .src-other { background: var(--surface-tint); color: var(--text-dim); }
+
+        /* ── KIA stats panel (right of latest event) ── */
+        .kia-panel {
+            flex-shrink: 0; min-width: 260px; max-width: 340px;
+            background: var(--surface-tint); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 12px 16px;
+        }
+        .kia-panel-title {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 8px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .kia-side-row {
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 0;
+        }
+        .kia-side-row + .kia-side-row { border-top: 1px solid var(--border); }
+        .kia-side-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+        .kia-side-dot.iran { background: var(--danger); }
+        .kia-side-dot.us { background: var(--accent); }
+        .kia-side-name {
+            font-size: 10px; font-weight: 600; color: var(--text-muted);
+            min-width: 55px; flex-shrink: 0;
+        }
+        .kia-nums {
+            display: flex; gap: 10px; flex: 1;
+        }
+        .kia-cell { text-align: center; flex: 1; }
+        .kia-cell-val {
+            font-size: 16px; font-weight: 800; line-height: 1;
+        }
+        .kia-cell-val.mil { color: var(--text); }
+        .kia-cell-val.civ { color: var(--danger); }
+        .kia-cell-val.wia { color: var(--warning); }
+        .kia-cell-lbl {
+            font-size: 8px; color: var(--text-dim); margin-top: 2px;
+            text-transform: uppercase; letter-spacing: 0.02em;
+        }
+        .kia-footer {
+            margin-top: 8px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .kia-disclaimer {
+            font-size: 8px; color: var(--text-dim); font-style: italic;
+        }
+        .kia-evidence-btn {
+            font-size: 9px; color: var(--accent); background: none; border: none;
+            cursor: pointer; font-weight: 600; padding: 2px 0;
+            display: flex; align-items: center; gap: 3px;
+            position: relative;
+        }
+        .kia-evidence-btn:hover { text-decoration: underline; }
+        /* floating popover */
+        .kia-popover {
+            display: none; position: fixed; z-index: 90;
+            width: 380px; max-height: 340px; overflow-y: auto;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+            padding: 14px 16px 10px;
+            animation: pop-in 0.18s ease;
+        }
+        .kia-popover.visible { display: block; }
+        .kia-popover-title {
+            font-size: 11px; font-weight: 700; color: var(--text);
+            margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .kia-popover-close {
+            font-size: 16px; color: var(--text-dim); background: none; border: none;
+            cursor: pointer; line-height: 1; padding: 0 2px;
+        }
+        .kia-popover-close:hover { color: var(--text); }
+        .kia-ev-item {
+            font-size: 10px; color: var(--text-soft); padding: 5px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05); line-height: 1.45;
+            display: flex; align-items: baseline; gap: 6px;
+        }
+        .kia-ev-item:last-child { border-bottom: none; }
+        .kia-ev-side {
+            font-size: 7.5px; font-weight: 700; text-transform: uppercase;
+            padding: 1px 5px; border-radius: 3px; flex-shrink: 0; letter-spacing: 0.03em;
+        }
+        .kia-ev-side.iran { background: rgba(255,59,48,0.1); color: var(--danger); }
+        .kia-ev-side.us_israel { background: rgba(0,113,227,0.1); color: var(--accent); }
+        .kia-ev-n { font-weight: 800; color: var(--text); min-width: 20px; text-align: right; flex-shrink: 0; }
+        .kia-ev-phrase { flex: 1; }
+        .kia-ev-src { color: var(--text-dim); font-style: italic; flex-shrink: 0; max-width: 100px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        @media (max-width: 500px) {
+            .kia-popover { width: calc(100vw - 32px); left: 16px !important; }
+        }
+
+        /* ── Timeline star badge (Top 3) ── */
+        .tl-star {
+            display: inline-flex; align-items: center; gap: 2px;
+            font-size: 9px; font-weight: 700; color: #b86900;
+            background: rgba(255,149,0,0.12); padding: 1px 6px;
+            border-radius: 999px; margin-left: 6px; vertical-align: middle;
+            letter-spacing: 0.02em;
+        }
+        .tl-event.tl-top .tl-dot {
+            width: 18px; height: 18px; font-size: 10px; line-height: 18px;
+            text-align: center; color: #fff;
+        }
+        .tl-event.tl-top .tl-card {
+            box-shadow: 0 0 0 1.5px rgba(255,149,0,0.35), var(--shadow-xs);
+        }
+
+        /* ── Filter bar (#5) ── */
+        .filter-bar {
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+            padding: 12px 16px; margin-bottom: 12px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius-md); box-shadow: var(--shadow-xs);
+        }
+        .filter-bar label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+        .filter-select {
+            appearance: none; -webkit-appearance: none;
+            background: var(--surface-tint); color: var(--text);
+            border: 1px solid var(--border); padding: 5px 26px 5px 10px;
+            border-radius: 8px; font-size: 11.5px; font-weight: 500;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2386868b'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 8px center;
+        }
+        .filter-select:focus { outline: none; border-color: var(--accent); }
+        .filter-reset {
+            font-size: 11px; color: var(--accent); background: none; border: none;
+            cursor: pointer; font-weight: 500; padding: 4px 8px;
+        }
+        .filter-reset:hover { text-decoration: underline; }
+        @media (max-width: 1100px) {
+            .kia-panel { min-width: 100%; max-width: 100%; }
+        }
+
+        /* Methodology modal */
+        .method-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+            display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .method-overlay.visible { display: flex; animation: fade-in 0.2s ease; }
+        .method-modal {
+            background: var(--surface); border-radius: var(--radius-xl);
+            border: 1px solid var(--border); box-shadow: var(--shadow-lg);
+            max-width: 640px; width: 100%; padding: 28px 28px 22px;
+            animation: pop-in 0.25s cubic-bezier(0.25, 0.46, 0.45, 1.06);
+            position: relative; max-height: 85vh; overflow-y: auto;
+        }
+        .method-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--text); }
+        .method-step {
+            display: flex; gap: 14px; margin-bottom: 16px; align-items: flex-start;
+        }
+        .method-num {
+            flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+            background: var(--accent); color: white; display: flex;
+            align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+        }
+        .method-step-content { flex: 1; }
+        .method-step-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+        .method-step-desc { font-size: 12px; color: var(--text-soft); line-height: 1.55; }
+
+        /* Timeline collapse/expand */
+        .tl-card .tl-detail { display: none; margin-top: 8px; }
+        .tl-event.expanded .tl-detail { display: block; }
+        .tl-expand-hint {
+            font-size: 9.5px; color: var(--text-dim); margin-top: 6px;
+            text-align: center; font-style: italic;
+        }
+        .tl-event.expanded .tl-expand-hint { display: none; }
+
+        /* Relative time display */
+        .time-relative { font-size: 10px; color: var(--text-dim); }
+        .time-dual { font-size: 9.5px; color: var(--text-dim); display: block; margin-top: 1px; }
+
+        /* (Pipeline moved to bottom footer) */
+
         /* Banners */
         .network-banner {
             background: var(--danger-soft); border: 1px solid rgba(255, 59, 48, 0.2);
@@ -674,7 +928,7 @@
         <span class="logo-dot"></span>
         <span class="ml" data-lang="ko">2026 이란전쟁 OSINT 모니터</span><span class="ml" data-lang="en">2026 Iran War OSINT Monitor</span><span class="ml" data-lang="es">Monitor OSINT Guerra Irán 2026</span><span class="ml" data-lang="zh">2026伊朗战争OSINT监控</span><span class="ml" data-lang="ja">2026イラン戦争OSINTモニター</span><span class="ml" data-lang="fr">Moniteur OSINT Guerre Iran 2026</span><span class="ml" data-lang="de">2026 Iran-Krieg OSINT-Monitor</span>
         <span class="badge"><span class="ml" data-lang="ko">전쟁 중</span><span class="ml" data-lang="en">At War</span><span class="ml" data-lang="es">En Guerra</span><span class="ml" data-lang="zh">战争中</span><span class="ml" data-lang="ja">戦争中</span><span class="ml" data-lang="fr">En Guerre</span><span class="ml" data-lang="de">Im Krieg</span></span>
-        <span class="badge live">LIVE</span>
+        <span class="badge {{ data_mode }}">{% if data_mode == 'live' %}<span class="ml" data-lang="ko">실시간</span><span class="ml" data-lang="en">LIVE</span><span class="ml" data-lang="es">EN VIVO</span><span class="ml" data-lang="zh">实时</span><span class="ml" data-lang="ja">ライブ</span><span class="ml" data-lang="fr">EN DIRECT</span><span class="ml" data-lang="de">LIVE</span>{% elif data_mode == 'demo' %}<span class="ml" data-lang="ko">데모</span><span class="ml" data-lang="en">DEMO</span><span class="ml" data-lang="es">DEMO</span><span class="ml" data-lang="zh">演示</span><span class="ml" data-lang="ja">デモ</span><span class="ml" data-lang="fr">DÉMO</span><span class="ml" data-lang="de">DEMO</span>{% else %}<span class="ml" data-lang="ko">오프라인</span><span class="ml" data-lang="en">OFFLINE</span><span class="ml" data-lang="es">SIN CONEXIÓN</span><span class="ml" data-lang="zh">离线</span><span class="ml" data-lang="ja">オフライン</span><span class="ml" data-lang="fr">HORS LIGNE</span><span class="ml" data-lang="de">OFFLINE</span>{% endif %}</span>
     </h1>
     <div class="actions">
         {% if not public_mode %}
@@ -684,6 +938,7 @@
         {% else %}
         <span class="public-badge">&#128274; <span class="ml" data-lang="ko">자동 업데이트 · 1시간마다 갱신</span><span class="ml" data-lang="en">Auto-update · Refreshed hourly</span><span class="ml" data-lang="es">Actualización automática · cada hora</span><span class="ml" data-lang="zh">自动更新 · 每小时刷新</span><span class="ml" data-lang="ja">自動更新 · 毎時更新</span><span class="ml" data-lang="fr">Mise à jour auto · toutes les heures</span><span class="ml" data-lang="de">Auto-Update · stündlich aktualisiert</span></span>
         {% endif %}
+        <button class="btn" onclick="openMethodology()">&#128218; <span class="ml" data-lang="ko">방법론</span><span class="ml" data-lang="en">Methodology</span><span class="ml" data-lang="es">Metodología</span><span class="ml" data-lang="zh">方法论</span><span class="ml" data-lang="ja">方法論</span><span class="ml" data-lang="fr">Méthodologie</span><span class="ml" data-lang="de">Methodik</span></button>
         <a class="btn" id="mapOnlyLink" href="/map" target="_blank">&#127760; <span class="ml" data-lang="ko">지도 전체보기</span><span class="ml" data-lang="en">Full Map</span><span class="ml" data-lang="es">Mapa completo</span><span class="ml" data-lang="zh">全屏地图</span><span class="ml" data-lang="ja">全画面地図</span><span class="ml" data-lang="fr">Carte complète</span><span class="ml" data-lang="de">Vollbild-Karte</span></a>
         <a class="btn" id="briefLink" href="/brief/daily" target="_blank">&#128196; <span class="ml" data-lang="ko">일일 브리핑</span><span class="ml" data-lang="en">Daily Brief</span><span class="ml" data-lang="es">Informe diario</span><span class="ml" data-lang="zh">每日简报</span><span class="ml" data-lang="ja">日次ブリーフィング</span><span class="ml" data-lang="fr">Briefing quotidien</span><span class="ml" data-lang="de">Tagesbericht</span></a>
         <select class="lang-select" id="langSelect" title="Language">
@@ -732,6 +987,48 @@
             <div class="war-latest-meta">{{ war_status.latest.date_str }} UTC</div>
         </div>
         {% endif %}
+        {% if casualties %}
+        <div class="war-divider"></div>
+        <div class="kia-panel">
+            <div class="kia-panel-title">
+                <span style="font-size:12px;">⚔️</span>
+                <span class="ml" data-lang="ko">인명 피해 현황</span><span class="ml" data-lang="en">Casualty Summary</span><span class="ml" data-lang="es">Resumen de bajas</span><span class="ml" data-lang="zh">伤亡摘要</span><span class="ml" data-lang="ja">死傷者概要</span><span class="ml" data-lang="fr">Bilan des pertes</span><span class="ml" data-lang="de">Verlustübersicht</span>
+            </div>
+            <!-- column headers -->
+            <div style="display:flex; gap:8px; padding: 0 0 4px 63px;">
+                <div class="kia-cell"><div class="kia-cell-lbl" style="font-weight:700;"><span class="ml" data-lang="ko">군사</span><span class="ml" data-lang="en">MIL</span><span class="ml" data-lang="es">MIL</span><span class="ml" data-lang="zh">军事</span><span class="ml" data-lang="ja">軍事</span><span class="ml" data-lang="fr">MIL</span><span class="ml" data-lang="de">MIL</span></div></div>
+                <div class="kia-cell"><div class="kia-cell-lbl" style="font-weight:700;"><span class="ml" data-lang="ko">민간</span><span class="ml" data-lang="en">CIV</span><span class="ml" data-lang="es">CIV</span><span class="ml" data-lang="zh">平民</span><span class="ml" data-lang="ja">民間</span><span class="ml" data-lang="fr">CIV</span><span class="ml" data-lang="de">ZIV</span></div></div>
+                <div class="kia-cell"><div class="kia-cell-lbl" style="font-weight:700;"><span class="ml" data-lang="ko">부상</span><span class="ml" data-lang="en">WIA</span><span class="ml" data-lang="es">HER</span><span class="ml" data-lang="zh">伤</span><span class="ml" data-lang="ja">負傷</span><span class="ml" data-lang="fr">BLE</span><span class="ml" data-lang="de">VER</span></div></div>
+            </div>
+            <!-- Iran row -->
+            <div class="kia-side-row">
+                <div class="kia-side-dot iran"></div>
+                <div class="kia-side-name"><span class="ml" data-lang="ko">이란</span><span class="ml" data-lang="en">Iran</span><span class="ml" data-lang="es">Irán</span><span class="ml" data-lang="zh">伊朗</span><span class="ml" data-lang="ja">イラン</span><span class="ml" data-lang="fr">Iran</span><span class="ml" data-lang="de">Iran</span></div>
+                <div class="kia-nums">
+                    <div class="kia-cell"><div class="kia-cell-val mil">{{ casualties.iran.military_kia }}</div></div>
+                    <div class="kia-cell"><div class="kia-cell-val civ">{{ casualties.iran.civilian_kia }}</div></div>
+                    <div class="kia-cell"><div class="kia-cell-val wia">{{ casualties.iran.wounded }}</div></div>
+                </div>
+            </div>
+            <!-- US/Israel row -->
+            <div class="kia-side-row">
+                <div class="kia-side-dot us"></div>
+                <div class="kia-side-name"><span class="ml" data-lang="ko">미/이</span><span class="ml" data-lang="en">US/IL</span><span class="ml" data-lang="es">EE.UU.</span><span class="ml" data-lang="zh">美/以</span><span class="ml" data-lang="ja">米/以</span><span class="ml" data-lang="fr">US/IL</span><span class="ml" data-lang="de">US/IL</span></div>
+                <div class="kia-nums">
+                    <div class="kia-cell"><div class="kia-cell-val mil">{{ casualties.us_israel.military_kia }}</div></div>
+                    <div class="kia-cell"><div class="kia-cell-val civ">{{ casualties.us_israel.civilian_kia }}</div></div>
+                    <div class="kia-cell"><div class="kia-cell-val wia">{{ casualties.us_israel.wounded }}</div></div>
+                </div>
+            </div>
+            <!-- footer: disclaimer + evidence toggle -->
+            <div class="kia-footer">
+                <div class="kia-disclaimer"><span class="ml" data-lang="ko">OSINT 추정치</span><span class="ml" data-lang="en">OSINT est.</span><span class="ml" data-lang="es">Est. OSINT</span><span class="ml" data-lang="zh">OSINT估算</span><span class="ml" data-lang="ja">OSINT推定</span><span class="ml" data-lang="fr">Est. OSINT</span><span class="ml" data-lang="de">OSINT-Schätz.</span></div>
+                <button class="kia-evidence-btn" id="kiaEvidenceBtn" onclick="toggleEvidencePopover(this)">
+                    <span class="ml" data-lang="ko">📋 근거 보기</span><span class="ml" data-lang="en">📋 Sources</span><span class="ml" data-lang="es">📋 Fuentes</span><span class="ml" data-lang="zh">📋 来源</span><span class="ml" data-lang="ja">📋 出典</span><span class="ml" data-lang="fr">📋 Sources</span><span class="ml" data-lang="de">📋 Quellen</span>
+                </button>
+            </div>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 
@@ -769,27 +1066,6 @@
             </div>
             <iframe id="mapFrame" src="/map"></iframe>
         </div>
-        <div class="card">
-            <div class="card-header"><span>&#128202; <span class="ml" data-lang="ko">파이프라인 상태</span><span class="ml" data-lang="en">Pipeline Status</span><span class="ml" data-lang="es">Estado del pipeline</span><span class="ml" data-lang="zh">管道状态</span><span class="ml" data-lang="ja">パイプライン状態</span><span class="ml" data-lang="fr">État du pipeline</span><span class="ml" data-lang="de">Pipeline-Status</span></span></div>
-            <div class="card-body report-box">
-                <div class="status-line">
-                    <span id="statusDot" class="status-dot {{ report_status.state }}"></span>
-                    <strong id="reportState">{{ report_status.state }}</strong>
-                    &nbsp;—&nbsp;
-                    <span id="reportStep">{{ report_status.step }}</span>
-                </div>
-                <p id="reportMessage" style="color:var(--text-muted); margin-bottom:8px; font-size:12px;">{{ report_status.message }}</p>
-                <p style="font-size:10.5px; color:var(--text-dim);"><span class="ml" data-lang="ko">갱신</span><span class="ml" data-lang="en">Updated</span><span class="ml" data-lang="es">Actualizado</span><span class="ml" data-lang="zh">更新</span><span class="ml" data-lang="ja">更新</span><span class="ml" data-lang="fr">Mis à jour</span><span class="ml" data-lang="de">Aktualisiert</span>: <span id="reportUpdated">{{ report_status.updated_at }}</span></p>
-                <div class="section-label"><span class="ml" data-lang="ko">최근 결과</span><span class="ml" data-lang="en">Latest Result</span><span class="ml" data-lang="es">Último resultado</span><span class="ml" data-lang="zh">最近结果</span><span class="ml" data-lang="ja">最新結果</span><span class="ml" data-lang="fr">Dernier résultat</span><span class="ml" data-lang="de">Letztes Ergebnis</span></div>
-                <pre id="reportResult">{{ report_status.last_result | tojson(indent=2) if report_status.last_result else '아직 실행 결과가 없습니다.' }}</pre>
-                <div class="section-label"><span class="ml" data-lang="ko">이력</span><span class="ml" data-lang="en">History</span><span class="ml" data-lang="es">Historial</span><span class="ml" data-lang="zh">历史记录</span><span class="ml" data-lang="ja">履歴</span><span class="ml" data-lang="fr">Historique</span><span class="ml" data-lang="de">Verlauf</span></div>
-                <ul id="reportHistory" class="history-list">
-                    {% for h in report_status.history|reverse %}
-                    <li><strong>{{ h.time }}</strong> — {{ h.step }} / {{ h.message }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
     </div>
 
     {% if timeline %}
@@ -807,18 +1083,14 @@
         <div class="timeline-wrap">
             <div class="timeline-track">
                 {% for ev in timeline %}
-                <div class="tl-event side-{{ ev.side }}" data-id="{{ ev.id }}" data-target-en="{{ ev.target_en }}" data-target-ko="{{ ev.target_ko }}" title="{{ ev.date_full }} · D+{{ ev.day_num }} · 클릭 시 표적 상세">
+                <div class="tl-event side-{{ ev.side }}{% if ev.is_top %} tl-top{% endif %}" data-id="{{ ev.id }}" data-target-en="{{ ev.target_en }}" data-target-ko="{{ ev.target_ko }}" title="{{ ev.date_full }} · D+{{ ev.day_num }} · 클릭 시 표적 상세">
                     <div class="tl-date">{{ ev.date_str }}<span class="tl-day">D+{{ ev.day_num }}</span></div>
-                    <div class="tl-dot"></div>
+                    <div class="tl-dot">{% if ev.is_top %}&#9733;{% endif %}</div>
                     <div class="tl-card">
                         <div class="tl-actors">
                             <span class="bi-ko">{{ ev.actor_ko }} &rarr; {{ ev.target_ko }}</span>
                             <span class="bi-en" style="display:none;">{{ ev.actor_en }} &rarr; {{ ev.target_en }}</span>
-                        </div>
-                        <div class="tl-means">
-                            &#128295;
-                            <span class="bi-ko">{{ ev.means_ko }}</span>
-                            <span class="bi-en" style="display:none;">{{ ev.means_en }}</span>
+                            {% if ev.is_top %}<span class="tl-star"><span class="ml" data-lang="ko">&#9733; 핵심</span><span class="ml" data-lang="en">&#9733; KEY</span><span class="ml" data-lang="es">&#9733; CLAVE</span><span class="ml" data-lang="zh">&#9733; 关键</span><span class="ml" data-lang="ja">&#9733; 重要</span><span class="ml" data-lang="fr">&#9733; CLÉ</span><span class="ml" data-lang="de">&#9733; KEY</span></span>{% endif %}
                         </div>
                         <div class="tl-loc">
                             &#128205;
@@ -829,19 +1101,27 @@
                             <span class="bi-ko">{{ ev.damage_ko }}</span>
                             <span class="bi-en" style="display:none;">{{ ev.damage_en }}</span>
                         </div>
-                        {% if ev.strategic_ko or ev.strategic_en %}
-                        <div class="tl-strat-label"><span class="ml" data-lang="ko">전략적 목적</span><span class="ml" data-lang="en">Strategic Purpose</span><span class="ml" data-lang="es">Propósito estratégico</span><span class="ml" data-lang="zh">战略目的</span><span class="ml" data-lang="ja">戦略的目的</span><span class="ml" data-lang="fr">Objectif stratégique</span><span class="ml" data-lang="de">Strategischer Zweck</span></div>
-                        <div class="tl-strat">
-                            <span class="bi-ko">{{ ev.strategic_ko }}</span>
-                            <span class="bi-en" style="display:none;">{{ ev.strategic_en }}</span>
+                        <div class="tl-expand-hint"><span class="ml" data-lang="ko">&#9660; 클릭하여 상세 보기</span><span class="ml" data-lang="en">&#9660; Click for details</span><span class="ml" data-lang="es">&#9660; Clic para detalles</span><span class="ml" data-lang="zh">&#9660; 点击查看详情</span><span class="ml" data-lang="ja">&#9660; 詳細を見る</span><span class="ml" data-lang="fr">&#9660; Cliquez pour plus</span><span class="ml" data-lang="de">&#9660; Details anzeigen</span></div>
+                        <div class="tl-detail">
+                            <div class="tl-means">
+                                &#128295;
+                                <span class="bi-ko">{{ ev.means_ko }}</span>
+                                <span class="bi-en" style="display:none;">{{ ev.means_en }}</span>
+                            </div>
+                            {% if ev.strategic_ko or ev.strategic_en %}
+                            <div class="tl-strat-label"><span class="ml" data-lang="ko">전략적 목적</span><span class="ml" data-lang="en">Strategic Purpose</span><span class="ml" data-lang="es">Propósito estratégico</span><span class="ml" data-lang="zh">战略目的</span><span class="ml" data-lang="ja">戦略的目的</span><span class="ml" data-lang="fr">Objectif stratégique</span><span class="ml" data-lang="de">Strategischer Zweck</span></div>
+                            <div class="tl-strat">
+                                <span class="bi-ko">{{ ev.strategic_ko }}</span>
+                                <span class="bi-en" style="display:none;">{{ ev.strategic_en }}</span>
+                            </div>
+                            {% endif %}
+                            {% if ev.tactical_ko or ev.tactical_en %}
+                            <div class="tl-tact">
+                                <span class="bi-ko">&#9881; {{ ev.tactical_ko }}</span>
+                                <span class="bi-en" style="display:none;">&#9881; {{ ev.tactical_en }}</span>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
-                        {% if ev.tactical_ko or ev.tactical_en %}
-                        <div class="tl-tact">
-                            <span class="bi-ko">&#9881; {{ ev.tactical_ko }}</span>
-                            <span class="bi-en" style="display:none;">&#9881; {{ ev.tactical_en }}</span>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -852,6 +1132,9 @@
     {% endif %}
 
     <!-- 전략적 분석은 타임라인 카드에 통합됨 -->
+
+    <!-- ★ 오늘의 핵심 사건 (#10) -->
+    <!-- Top 3 removed — stars shown on timeline instead -->
 
     {% if not incidents %}
     <div class="card">
@@ -866,6 +1149,41 @@
         </div>
     </div>
     {% else %}
+    <!-- ★ 필터 바 (#5) -->
+    <div class="filter-bar" id="filterBar">
+        <label><span class="ml" data-lang="ko">&#128269; 필터:</span><span class="ml" data-lang="en">&#128269; Filter:</span><span class="ml" data-lang="es">&#128269; Filtro:</span><span class="ml" data-lang="zh">&#128269; 筛选:</span><span class="ml" data-lang="ja">&#128269; フィルタ:</span><span class="ml" data-lang="fr">&#128269; Filtre:</span><span class="ml" data-lang="de">&#128269; Filter:</span></label>
+        <select class="filter-select" id="filterActor" onchange="applyFilters()">
+            <option value="all" data-ko="전체 행위자" data-en="All Actors">전체 행위자</option>
+            <option value="iran" data-ko="🔴 이란/대리세력" data-en="🔴 Iran/Proxy">🔴 이란/대리세력</option>
+            <option value="us_israel" data-ko="🔵 미국/이스라엘" data-en="🔵 US/Israel">🔵 미국/이스라엘</option>
+            <option value="other" data-ko="🟡 기타" data-en="🟡 Other">🟡 기타</option>
+        </select>
+        <select class="filter-select" id="filterStatus" onchange="applyFilters()">
+            <option value="all" data-ko="전체 상태" data-en="All Status">전체 상태</option>
+            <option value="confirmed" data-ko="✅ 확인됨" data-en="✅ Confirmed">✅ 확인됨</option>
+            <option value="likely" data-ko="🔵 유력" data-en="🔵 Likely">🔵 유력</option>
+            <option value="claimed" data-ko="🟡 주장" data-en="🟡 Claimed">🟡 주장</option>
+            <option value="disputed" data-ko="🟠 논쟁중" data-en="🟠 Disputed">🟠 논쟁중</option>
+            <option value="retracted" data-ko="🔴 철회됨" data-en="🔴 Retracted">🔴 철회됨</option>
+        </select>
+        <select class="filter-select" id="filterSeverity" onchange="applyFilters()">
+            <option value="all" data-ko="전체 심각도" data-en="All Severity">전체 심각도</option>
+            <option value="높음" data-ko="▲ 높음" data-en="▲ High">▲ 높음</option>
+            <option value="중간" data-ko="▬ 중간" data-en="▬ Medium">▬ 중간</option>
+            <option value="낮음" data-ko="▼ 낮음" data-en="▼ Low">▼ 낮음</option>
+        </select>
+        <select class="filter-select" id="filterSource" onchange="applyFilters()">
+            <option value="all" data-ko="전체 출처" data-en="All Sources">전체 출처</option>
+            <option value="government" data-ko="🏛️ 정부 발표" data-en="🏛️ Official">🏛️ 정부 발표</option>
+            <option value="wire" data-ko="📡 통신사" data-en="📡 Wire">📡 통신사</option>
+            <option value="broadcast" data-ko="📺 방송사" data-en="📺 Broadcast">📺 방송사</option>
+            <option value="newspaper" data-ko="📰 신문" data-en="📰 Press">📰 신문</option>
+            <option value="reference" data-ko="📚 참고자료" data-en="📚 Reference">📚 참고자료</option>
+        </select>
+        <button class="filter-reset" onclick="resetFilters()"><span class="ml" data-lang="ko">초기화</span><span class="ml" data-lang="en">Reset</span><span class="ml" data-lang="es">Resetear</span><span class="ml" data-lang="zh">重置</span><span class="ml" data-lang="ja">リセット</span><span class="ml" data-lang="fr">Réinitialiser</span><span class="ml" data-lang="de">Zurücksetzen</span></button>
+        <span id="filterCount" style="font-size:11px; color:var(--text-dim); margin-left:auto;"></span>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <span>&#128269; <span class="ml" data-lang="ko">사건 목록</span><span class="ml" data-lang="en">Incident List</span><span class="ml" data-lang="es">Lista de incidentes</span><span class="ml" data-lang="zh">事件列表</span><span class="ml" data-lang="ja">事件一覧</span><span class="ml" data-lang="fr">Liste des incidents</span><span class="ml" data-lang="de">Vorfallsliste</span> <small>({{ incidents|length }})</small></span>
@@ -885,12 +1203,13 @@
                     <th><span class="ml" data-lang="ko">심각도</span><span class="ml" data-lang="en">Severity</span><span class="ml" data-lang="es">Gravedad</span><span class="ml" data-lang="zh">严重度</span><span class="ml" data-lang="ja">深刻度</span><span class="ml" data-lang="fr">Gravité</span><span class="ml" data-lang="de">Schwere</span></th>
                     <th><span class="ml" data-lang="ko">신뢰도</span><span class="ml" data-lang="en">Conf.</span><span class="ml" data-lang="es">Conf.</span><span class="ml" data-lang="zh">可信度</span><span class="ml" data-lang="ja">信頼度</span><span class="ml" data-lang="fr">Conf.</span><span class="ml" data-lang="de">Konf.</span></th>
                     <th><span class="ml" data-lang="ko">상태</span><span class="ml" data-lang="en">Status</span><span class="ml" data-lang="es">Estado</span><span class="ml" data-lang="zh">状态</span><span class="ml" data-lang="ja">状態</span><span class="ml" data-lang="fr">Statut</span><span class="ml" data-lang="de">Status</span></th>
+                    <th><span class="ml" data-lang="ko">출처</span><span class="ml" data-lang="en">Source</span><span class="ml" data-lang="es">Fuente</span><span class="ml" data-lang="zh">来源</span><span class="ml" data-lang="ja">出典</span><span class="ml" data-lang="fr">Source</span><span class="ml" data-lang="de">Quelle</span></th>
                 </tr></thead>
                 <tbody>
                 {% for i in incidents %}
-                <tr class="{{ 'iran-actor' if i.is_iran_side else '' }} bi-row" data-lang="ko" title="행(비(非)용어 영역)을 클릭하면 해당 줄만 한/영 전환">
+                <tr class="{{ 'iran-actor' if i.is_iran_side else '' }} bi-row" data-lang="ko" data-actor-side="{{ i.actor_side }}" data-status="{{ i.verified_status_raw }}" data-severity="{{ i.damage_severity }}" data-source-type="{{ i.source_type.type }}" title="행(비(非)용어 영역)을 클릭하면 해당 줄만 한/영 전환">
                     <td>{{ i.id }}</td>
-                    <td style="font-size:10.5px; white-space:nowrap; color:var(--text-muted);">{{ i.pub_date or '-' }}</td>
+                    <td style="font-size:10.5px; white-space:nowrap; color:var(--text-muted);">{{ i.pub_date or '-' }}{% if i.source_published_at %}<span class="time-relative" data-iso="{{ i.source_published_at }}"></span>{% endif %}</td>
                     <td><strong class="{{ 'actor-iran' if i.is_iran_side else ('actor-us' if i.is_us_side else 'actor-other') }}">
                         <span class="term actor bi-ko" data-term-ko="{{ i.actor or '' }}" data-term-en="{{ i.actor_en or '' }}">{{ i.actor or '-' }}</span><span class="term actor bi-en" style="display:none;" data-term-ko="{{ i.actor or '' }}" data-term-en="{{ i.actor_en or '' }}">{{ i.actor_en or '-' }}</span>
                     </strong></td>
@@ -910,6 +1229,10 @@
                     <td>{% if i.damage_severity == '높음' %}<span class="severity-high">&#9650; <span class="ml" data-lang="ko">높음</span><span class="ml" data-lang="en">High</span><span class="ml" data-lang="es">Alto</span><span class="ml" data-lang="zh">高</span><span class="ml" data-lang="ja">高</span><span class="ml" data-lang="fr">Élevé</span><span class="ml" data-lang="de">Hoch</span></span>{% elif i.damage_severity == '중간' %}<span class="severity-medium">&#9644; <span class="ml" data-lang="ko">중간</span><span class="ml" data-lang="en">Med</span><span class="ml" data-lang="es">Medio</span><span class="ml" data-lang="zh">中</span><span class="ml" data-lang="ja">中</span><span class="ml" data-lang="fr">Moyen</span><span class="ml" data-lang="de">Mittel</span></span>{% else %}<span class="severity-low">&#9660; <span class="ml" data-lang="ko">낮음</span><span class="ml" data-lang="en">Low</span><span class="ml" data-lang="es">Bajo</span><span class="ml" data-lang="zh">低</span><span class="ml" data-lang="ja">低</span><span class="ml" data-lang="fr">Faible</span><span class="ml" data-lang="de">Niedrig</span></span>{% endif %}</td>
                     <td>{{ '%.2f'|format(i.confidence) }}</td>
                     <td><span class="pill {{ i.verified_status_raw }}">{{ i.verified_status }}</span></td>
+                    <td style="font-size:10.5px;">
+                        <span class="src-badge {{ i.source_type.cls }}">{{ i.source_type.icon }} <span class="ml" data-lang="ko">{{ i.source_type.ko }}</span><span class="ml" data-lang="en">{{ i.source_type.en }}</span><span class="ml" data-lang="es">{{ i.source_type.en }}</span><span class="ml" data-lang="zh">{{ i.source_type.en }}</span><span class="ml" data-lang="ja">{{ i.source_type.en }}</span><span class="ml" data-lang="fr">{{ i.source_type.en }}</span><span class="ml" data-lang="de">{{ i.source_type.en }}</span></span>
+                        <div style="margin-top:3px;"><a href="{{ i.source_url }}" target="_blank" rel="noopener" style="font-size:10px; color:var(--accent); text-decoration:none;">{{ i.source_publisher }} ↗</a></div>
+                    </td>
                 </tr>
                 {% endfor %}
                 </tbody>
@@ -918,8 +1241,41 @@
     </div>
     {% endif %}
 
-    <!-- ★ 피드백 위젯 -->
-    <div class="fb-section">
+    <!-- ★ 하단 영역: 파이프라인 + 피드백 -->
+    <div class="bottom-footer">
+        <!-- Pipeline compact -->
+        <div class="pipe-compact">
+            <div class="pipe-compact-header">
+                <span id="statusDot" class="status-dot {{ report_status.state }}"></span>
+                <span class="pipe-compact-title">&#128202; <span class="ml" data-lang="ko">파이프라인</span><span class="ml" data-lang="en">Pipeline</span><span class="ml" data-lang="es">Pipeline</span><span class="ml" data-lang="zh">管道</span><span class="ml" data-lang="ja">パイプライン</span><span class="ml" data-lang="fr">Pipeline</span><span class="ml" data-lang="de">Pipeline</span></span>
+                <span style="font-size:10px; color:var(--text-dim);"><strong id="reportState">{{ report_status.state }}</strong></span>
+            </div>
+            <div class="pipe-compact-grid">
+                <div class="pipe-mini">
+                    <div class="pipe-mini-val" id="pipeDocs">-</div>
+                    <div class="pipe-mini-lbl"><span class="ml" data-lang="ko">문서</span><span class="ml" data-lang="en">Docs</span><span class="ml" data-lang="es">Docs</span><span class="ml" data-lang="zh">文件</span><span class="ml" data-lang="ja">文書</span><span class="ml" data-lang="fr">Docs</span><span class="ml" data-lang="de">Docs</span></div>
+                </div>
+                <div class="pipe-mini">
+                    <div class="pipe-mini-val" id="pipeIncs">-</div>
+                    <div class="pipe-mini-lbl"><span class="ml" data-lang="ko">사건</span><span class="ml" data-lang="en">Events</span><span class="ml" data-lang="es">Eventos</span><span class="ml" data-lang="zh">事件</span><span class="ml" data-lang="ja">事件</span><span class="ml" data-lang="fr">Événem.</span><span class="ml" data-lang="de">Vorfälle</span></div>
+                </div>
+                <div class="pipe-mini">
+                    <div class="pipe-mini-val" id="pipeLastIngest" style="font-size:10px;">-</div>
+                    <div class="pipe-mini-lbl"><span class="ml" data-lang="ko">수집</span><span class="ml" data-lang="en">Ingest</span><span class="ml" data-lang="es">Ingesta</span><span class="ml" data-lang="zh">采集</span><span class="ml" data-lang="ja">取込</span><span class="ml" data-lang="fr">Collecte</span><span class="ml" data-lang="de">Erfassung</span></div>
+                </div>
+                <div class="pipe-mini">
+                    <div class="pipe-mini-val" id="pipeLastSuccess" style="font-size:10px;">-</div>
+                    <div class="pipe-mini-lbl"><span class="ml" data-lang="ko">성공</span><span class="ml" data-lang="en">Success</span><span class="ml" data-lang="es">Éxito</span><span class="ml" data-lang="zh">成功</span><span class="ml" data-lang="ja">成功</span><span class="ml" data-lang="fr">Succès</span><span class="ml" data-lang="de">Erfolg</span></div>
+                </div>
+            </div>
+            <button class="pipe-detail-toggle" onclick="this.nextElementSibling.classList.toggle('visible'); this.textContent = this.nextElementSibling.classList.contains('visible') ? '▲ Hide' : '▼ Details';">▼ Details</button>
+            <div class="pipe-compact-detail">
+                <p id="reportMessage" style="color:var(--text-muted); margin-bottom:6px; font-size:11px;">{{ report_status.message }}</p>
+                <p style="font-size:10px; color:var(--text-dim);"><span class="ml" data-lang="ko">갱신</span><span class="ml" data-lang="en">Updated</span><span class="ml" data-lang="es">Actualizado</span><span class="ml" data-lang="zh">更新</span><span class="ml" data-lang="ja">更新</span><span class="ml" data-lang="fr">Mis à jour</span><span class="ml" data-lang="de">Aktualisiert</span>: <span id="reportUpdated">{{ report_status.updated_at }}</span></p>
+                <pre id="reportResult" style="font-size:10px; max-height:120px; overflow:auto;">{{ report_status.last_result | tojson(indent=2) if report_status.last_result else '-' }}</pre>
+            </div>
+        </div>
+        <!-- Feedback -->
         <div class="fb-card">
             <div class="fb-title">
                 <span class="ml" data-lang="ko">의견 보내기</span>
@@ -961,6 +1317,32 @@
         </div>
     </div>
 </main>
+
+<!-- KIA Evidence Popover -->
+<div class="kia-popover" id="kiaPopover">
+    <div class="kia-popover-title">
+        <span><span class="ml" data-lang="ko">📋 인명 피해 근거 ({{ cas_evidence|length }}건)</span><span class="ml" data-lang="en">📋 Casualty Evidence ({{ cas_evidence|length }} items)</span><span class="ml" data-lang="es">📋 Evidencia ({{ cas_evidence|length }})</span><span class="ml" data-lang="zh">📋 伤亡依据 ({{ cas_evidence|length }})</span><span class="ml" data-lang="ja">📋 根拠 ({{ cas_evidence|length }}件)</span><span class="ml" data-lang="fr">📋 Preuves ({{ cas_evidence|length }})</span><span class="ml" data-lang="de">📋 Belege ({{ cas_evidence|length }})</span></span>
+        <button class="kia-popover-close" onclick="closeEvidencePopover()">✕</button>
+    </div>
+    {% for ev in cas_evidence %}
+    <div class="kia-ev-item">
+        <span class="kia-ev-side {{ ev.side }}">{% if ev.side == 'iran' %}IRN{% else %}US{% endif %}</span>
+        <span class="kia-ev-n">+{{ ev.n }}</span>
+        <span class="kia-ev-phrase">{{ ev.phrase }}</span>
+        <span class="kia-ev-src" title="{{ ev.source }}">{{ ev.source[:22] }}{% if ev.source|length > 22 %}…{% endif %}</span>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Methodology modal -->
+<div id="methodOverlay" class="method-overlay" onclick="closeMethodology(event)">
+    <div class="method-modal" onclick="event.stopPropagation()">
+        <button class="gloss-close" onclick="closeMethodology()" aria-label="닫기">✕</button>
+        <div id="methodBody">
+            <div class="gloss-loading">불러오는 중…</div>
+        </div>
+    </div>
+</div>
 
 <!-- Glossary modal (shared) -->
 <div id="glossOverlay" class="gloss-overlay" onclick="closeGloss(event)">
@@ -1176,6 +1558,161 @@ async function submitFeedback() {
     }
 }
 
+// ── 사건 필터 (#5) ──
+function applyFilters() {
+    const actor = document.getElementById('filterActor').value;
+    const status = document.getElementById('filterStatus').value;
+    const severity = document.getElementById('filterSeverity').value;
+    const source = document.getElementById('filterSource').value;
+    let shown = 0, total = 0;
+    document.querySelectorAll('tr.bi-row').forEach(row => {
+        total++;
+        const matchActor = actor === 'all' || row.dataset.actorSide === actor;
+        const matchStatus = status === 'all' || row.dataset.status === status;
+        const matchSeverity = severity === 'all' || row.dataset.severity === severity;
+        const matchSource = source === 'all' || row.dataset.sourceType === source;
+        const visible = matchActor && matchStatus && matchSeverity && matchSource;
+        row.style.display = visible ? '' : 'none';
+        if (visible) shown++;
+    });
+    const countEl = document.getElementById('filterCount');
+    if (countEl) {
+        if (actor === 'all' && status === 'all' && severity === 'all' && source === 'all') {
+            countEl.textContent = '';
+        } else {
+            countEl.textContent = globalLang === 'ko'
+                ? `${shown}/${total}건 표시`
+                : `Showing ${shown}/${total}`;
+        }
+    }
+}
+function resetFilters() {
+    document.getElementById('filterActor').value = 'all';
+    document.getElementById('filterStatus').value = 'all';
+    document.getElementById('filterSeverity').value = 'all';
+    document.getElementById('filterSource').value = 'all';
+    applyFilters();
+}
+
+// ── 상대 시간 표시 ──
+function timeAgo(isoStr) {
+    if (!isoStr) return '';
+    const now = new Date();
+    const then = new Date(isoStr);
+    const diff = Math.floor((now - then) / 1000);
+    if (diff < 60) return globalLang === 'ko' ? `${diff}초 전` : `${diff}s ago`;
+    const mins = Math.floor(diff / 60);
+    if (mins < 60) return globalLang === 'ko' ? `${mins}분 전` : `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return globalLang === 'ko' ? `${hrs}시간 전` : `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return globalLang === 'ko' ? `${days}일 전` : `${days}d ago`;
+    const months = Math.floor(days / 30);
+    return globalLang === 'ko' ? `${months}개월 전` : `${months}mo ago`;
+}
+function updateRelativeTimes() {
+    document.querySelectorAll('.time-relative[data-iso]').forEach(el => {
+        const iso = el.dataset.iso;
+        if (iso) el.textContent = ' · ' + timeAgo(iso);
+    });
+}
+setInterval(updateRelativeTimes, 30000);
+
+// ── KIA 근거 팝오버 ──
+function toggleEvidencePopover(btn) {
+    const pop = document.getElementById('kiaPopover');
+    if (pop.classList.contains('visible')) {
+        closeEvidencePopover();
+        return;
+    }
+    // 버튼 위치 기준으로 팝오버 배치
+    const rect = btn.getBoundingClientRect();
+    const popW = 380;
+    let left = rect.left;
+    let top = rect.bottom + 8;
+    // 화면 오른쪽 넘침 방지
+    if (left + popW > window.innerWidth - 16) left = window.innerWidth - popW - 16;
+    if (left < 16) left = 16;
+    // 화면 아래 넘침 → 위로 표시
+    if (top + 300 > window.innerHeight) top = rect.top - 310;
+    if (top < 8) top = 8;
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+    pop.classList.add('visible');
+    // 바깥 클릭으로 닫기
+    setTimeout(() => document.addEventListener('click', _closePopoverOutside, {once: true}), 50);
+}
+function closeEvidencePopover() {
+    document.getElementById('kiaPopover').classList.remove('visible');
+}
+function _closePopoverOutside(e) {
+    const pop = document.getElementById('kiaPopover');
+    if (!pop.contains(e.target) && e.target.id !== 'kiaEvidenceBtn') {
+        closeEvidencePopover();
+    } else if (pop.classList.contains('visible')) {
+        setTimeout(() => document.addEventListener('click', _closePopoverOutside, {once: true}), 50);
+    }
+}
+
+// ── 방법론 모달 ──
+async function openMethodology() {
+    const overlay = document.getElementById('methodOverlay');
+    const body = document.getElementById('methodBody');
+    body.innerHTML = '<div class="gloss-loading">🔍 불러오는 중…</div>';
+    overlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+    try {
+        const r = await fetch('/api/methodology');
+        const d = await r.json();
+        const m = d.methodology;
+        const isKo = globalLang === 'ko';
+        const lang = isKo ? m.ko : m.en;
+        const steps = Object.entries(lang);
+        const stepIcons = ['📡', '🔄', '🔍', '✅', '📊', '🗺️'];
+        body.innerHTML = `
+            <div class="method-title">${isKo ? '📋 OSINT 분석 방법론' : '📋 OSINT Analysis Methodology'}</div>
+            ${steps.map(([key, desc], i) => `
+                <div class="method-step">
+                    <div class="method-num">${i + 1}</div>
+                    <div class="method-step-content">
+                        <div class="method-step-title">${stepIcons[i] || '📌'} ${key.replace(/_/g, ' ').toUpperCase()}</div>
+                        <div class="method-step-desc">${escapeHtml(desc)}</div>
+                    </div>
+                </div>
+            `).join('')}
+            <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border); font-size:11px; color:var(--text-dim);">
+                ${isKo ? '※ 본 시스템은 GPT/LLM API를 사용하지 않으며, 규칙 기반 키워드 매칭으로 사건을 추출합니다.' : '※ This system uses no GPT/LLM APIs — incidents are extracted via rule-based keyword matching.'}
+            </div>
+        `;
+    } catch(err) {
+        body.innerHTML = `<div class="gloss-loading" style="color:var(--danger);">조회 실패: ${err}</div>`;
+    }
+}
+function closeMethodology(e) {
+    if (e && e.target && e.target !== document.getElementById('methodOverlay') && !(e.target.classList && e.target.classList.contains('gloss-close'))) return;
+    document.getElementById('methodOverlay').classList.remove('visible');
+    document.body.style.overflow = '';
+}
+
+// ── 파이프라인 상세 상태 ──
+async function fetchPipelineStatus() {
+    try {
+        const r = await fetch('/api/pipeline/status');
+        const d = await r.json();
+        const el = (id) => document.getElementById(id);
+        if (el('pipeDocs')) el('pipeDocs').textContent = d.documents_total ?? '-';
+        if (el('pipeIncs')) el('pipeIncs').textContent = d.incidents_total ?? '-';
+        if (el('pipeLastIngest') && d.last_ingest_at) {
+            el('pipeLastIngest').textContent = timeAgo(d.last_ingest_at) || new Date(d.last_ingest_at).toLocaleString('ko-KR');
+        }
+        if (el('pipeLastSuccess') && d.last_success_at) {
+            el('pipeLastSuccess').textContent = timeAgo(d.last_success_at) || d.last_success_at;
+        }
+    } catch(e) {}
+}
+fetchPipelineStatus();
+setInterval(fetchPipelineStatus, 10000);
+
 // 이벤트 바인딩
 document.addEventListener('DOMContentLoaded', () => {
     const langSel = document.getElementById('langSelect');
@@ -1201,18 +1738,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.tl-event').forEach(el => {
-        el.addEventListener('click', () => {
-            // 타임라인 카드는 표적을 우선 조회
-            const en = el.dataset.targetEn || '';
-            const ko = el.dataset.targetKo || '';
-            const query = en && en !== '-' ? en : ko;
-            if (query) openGloss(query);
+        el.addEventListener('click', (e) => {
+            // 타임라인 카드 접기/펼치기
+            e.stopPropagation();
+            el.classList.toggle('expanded');
         });
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeGloss({target: document.getElementById('glossOverlay')});
+        if (e.key === 'Escape') {
+            closeGloss({target: document.getElementById('glossOverlay')});
+            closeMethodology({target: document.getElementById('methodOverlay')});
+        }
     });
+
+    // 초기 상대 시간 표시
+    updateRelativeTimes();
 });
 </script>
 </body>

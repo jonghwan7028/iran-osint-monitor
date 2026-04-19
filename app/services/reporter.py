@@ -23,6 +23,8 @@ def _default_status() -> dict[str, Any]:
         'updated_at': _now(),
         'history': [],
         'last_result': None,
+        'last_success_at': None,
+        'last_failure_reason': None,
     }
 
 
@@ -56,6 +58,12 @@ def update_status(*, state: str, step: str, message: str, extra: dict[str, Any] 
         'step': step,
         'message': message,
     })
+    # Track success/failure timestamps
+    if state == "completed":
+        data['last_success_at'] = _now()
+        data['last_failure_reason'] = None
+    elif state == "failed":
+        data['last_failure_reason'] = message
     data.update({
         'state': state,
         'step': step,

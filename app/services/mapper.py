@@ -19,7 +19,7 @@ from app.models.entities import Incident, SourceDocument
 from app.services.extractor import IncidentExtractor
 from app.services.utils import infer_location_from_text, choose_fallback_location
 from app.services.seed_data import get_actor_side
-from app.services.ko_translate import build_bilingual_incident, translate_location
+from app.services.ko_translate import build_bilingual_incident, translate_location, translate_verified_status
 
 
 MAP_TEMPLATE = """<!DOCTYPE html>
@@ -96,11 +96,11 @@ html, body { margin:0; padding:0; height:100%; background:#f5f5f7; color:#1d1d1f
 <body>
 <div id="map"></div>
 <button class="lang-toggle" id="langToggle" title="클릭 시 기본 언어를 전환합니다">🇰🇷 한국어 / English</button>
-<div class="legend">
-  <h4>범 례</h4>
-  <div class="row"><span class="sq"></span><span>이란/대리세력 공격</span></div>
-  <div class="row"><span class="c-blue"></span><span>미국/이스라엘 타격</span></div>
-  <div class="row"><span class="c-yel"></span><span>기타 (외교·정치)</span></div>
+<div class="legend" id="mapLegend">
+  <h4 class="leg-title">범 례</h4>
+  <div class="row"><span class="sq"></span><span class="leg-iran">이란/대리세력 공격</span></div>
+  <div class="row"><span class="c-blue"></span><span class="leg-us">미국/이스라엘 타격</span></div>
+  <div class="row"><span class="c-yel"></span><span class="leg-other">기타 (외교·정치)</span></div>
 </div>
 __EMPTY_BANNER__
 <script>
@@ -137,11 +137,12 @@ function renderPopupHTML(inc, lang) {
   const labels = lang === 'ko'
     ? {target:'대상', loc:'위치', when:'일시', means:'수단', tgtType:'대상유형',
        damage:'피해', tact:'전술평가', strat:'전략평가', conf:'신뢰도', status:'상태',
-       switchBtn:'🌐 English'}
+       switchBtn:'🌐 English', pub:'출처'}
     : {target:'Target', loc:'Location', when:'When', means:'Means', tgtType:'Target type',
        damage:'Damage', tact:'Tactical', strat:'Strategic', conf:'Confidence', status:'Status',
-       switchBtn:'🌐 한국어'};
+       switchBtn:'🌐 한국어', pub:'Source'};
   const wrapBtnId = 'sw_' + inc.id + '_' + lang;
+  const confBadge = inc.confidence >= 0.7 ? '🟢' : inc.confidence >= 0.5 ? '🟡' : '🔴';
   return `
     <div style="max-width:420px;">
       <div class="popup-side" style="color:${sideColor}">${sideLabel}</div>
@@ -156,12 +157,12 @@ function renderPopupHTML(inc, lang) {
       <div class="popup-row"><span class="lbl">${labels.strat}</span> <span class="popup-assess">${escapeHtml(d.strategic_assessment)}</span></div>
       <hr class="popup-sep"/>
       <div class="popup-meta">
-        ${labels.conf}: ${inc.confidence.toFixed(2)} &nbsp;|&nbsp;
+        ${confBadge} ${labels.conf}: ${inc.confidence.toFixed(2)} &nbsp;|&nbsp;
         ${labels.status}: ${escapeHtml(d.verified_status)}
       </div>
       <div class="popup-meta">
         <a class="popup-link" href="${escapeHtml(d.url)}" target="_blank" rel="noopener">
-          ${escapeHtml(d.publisher)}: ${escapeHtml((d.title || '').slice(0, 80))}${(d.title || '').length > 80 ? '…' : ''}
+          ${labels.pub}: ${escapeHtml(d.publisher)} · ${escapeHtml((d.title || '').slice(0, 80))}${(d.title || '').length > 80 ? '…' : ''}
         </a>
       </div>
       <span class="popup-switch" id="${wrapBtnId}" data-inc="${inc.id}">${labels.switchBtn}</span>
@@ -264,10 +265,25 @@ if (bounds.length > 0) {
   map.setView([28.0, 49.0], 4);
 }
 
+const LEGEND_I18N = {
+  ko: {title:'범 례', iran:'이란/대리세력 공격', us:'미국/이스라엘 타격', other:'기타 (외교·정치)'},
+  en: {title:'Legend', iran:'Iran / Proxy Attack', us:'US / Israel Strike', other:'Other (Diplomatic)'}
+};
+function updateLegend(lang) {
+  const t = LEGEND_I18N[lang] || LEGEND_I18N.en;
+  const el = document.getElementById('mapLegend');
+  if (!el) return;
+  el.querySelector('.leg-title').textContent = t.title;
+  el.querySelector('.leg-iran').textContent = t.iran;
+  el.querySelector('.leg-us').textContent = t.us;
+  el.querySelector('.leg-other').textContent = t.other;
+}
+
 document.getElementById('langToggle').addEventListener('click', () => {
   DEFAULT_LANG = DEFAULT_LANG === 'ko' ? 'en' : 'ko';
   const btn = document.getElementById('langToggle');
   btn.textContent = DEFAULT_LANG === 'ko' ? '🇰🇷 한국어 / English' : '🇬🇧 English / 한국어';
+  updateLegend(DEFAULT_LANG);
   // 열려있는 팝업을 현재 기본 언어로 재렌더링
   markersById.forEach((layer, id) => {
     if (layer._refreshTooltip) layer._refreshTooltip();

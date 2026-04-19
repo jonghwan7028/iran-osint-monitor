@@ -39,10 +39,122 @@ from app.services.ko_translate import (
     translate_sentence, translate_verified_status,
 )
 from app.services.glossary import lookup as glossary_lookup
+import re as _re
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 router = APIRouter()
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
+# ── 출처 유형 분류 (#4) ──
+def _classify_source_type(publisher: str) -> dict:
+    """매체 이름으로 출처 유형(정부/통신사/방송/신문/OSINT/참고/기타) 분류."""
+    pub = (publisher or "").lower()
+    if any(k in pub for k in ["pentagon", "ministry", "centcom", "idf", "government",
+                               "state department", "house of commons"]):
+        return {"type": "government", "ko": "정부 발표", "en": "Official", "icon": "🏛️", "cls": "src-gov"}
+    if any(k in pub for k in ["reuters", "ap ", "associated press", "afp"]):
+        return {"type": "wire", "ko": "통신사", "en": "Wire", "icon": "📡", "cls": "src-wire"}
+    if any(k in pub for k in ["cnn", "bbc", "al jazeera", "nbc", "cbs", "npr", "fox"]):
+        return {"type": "broadcast", "ko": "방송사", "en": "Broadcast", "icon": "📺", "cls": "src-broadcast"}
+    if any(k in pub for k in ["nyt", "washington post", "times of israel", "guardian"]):
+        return {"type": "newspaper", "ko": "신문", "en": "Press", "icon": "📰", "cls": "src-press"}
+    if any(k in pub for k in ["bellingcat", "satellite", "maxar", "planet", "osint"]):
+        return {"type": "osint", "ko": "OSINT", "en": "OSINT", "icon": "🛰️", "cls": "src-osint"}
+    if any(k in pub for k in ["wikipedia", "britannica", "crs"]):
+        return {"type": "reference", "ko": "참고자료", "en": "Reference", "icon": "📚", "cls": "src-ref"}
+    return {"type": "other", "ko": "기타", "en": "Other", "icon": "📄", "cls": "src-other"}
+
+
+# ── KIA 추정 (#전쟁배너) ──
+def _estimate_casualties(incident_pairs) -> dict:
+    """damage_summary 텍스트에서 사상자 수를 추출하여 진영별 합산.
+    피해자는 target_actor의 진영으로 분류한다 (공격 당한 쪽의 손실).
+    evidence 리스트도 함께 반환하여 UI에서 근거를 표시할 수 있도록 한다.
+    """
+    stats = {
+        "us_israel": {"military_kia": 0, "civilian_kia": 0, "wounded": 0},
+        "iran":      {"military_kia": 0, "civilian_kia": 0, "wounded": 0},
+    }
+    evidence = []  # 근거 리스트: [{side, cat, n, phrase, source, actor, target}]
+
+    for inc, doc in incident_pairs:
+        dmg = (inc.damage_summary or "")
+        target_side = get_actor_side(inc.target_actor or "")
+        actor_side  = get_actor_side(inc.actor or "")
+        source_name = doc.publisher if doc else ""
+
+        # 사망 패턴: "X killed", "X [words] killed", "X dead", "X eliminated"
+        for m in _re.finditer(r'(\d+)\s+[\w\s]{0,40}?\b(?:killed|dead|eliminated|사망)', dmg, _re.IGNORECASE):
+            n = int(m.group(1))
+            context = m.group(0).lower()
+            # 누가 죽었는지 판별
+            if any(w in context for w in ["attacker", "militia fighter"]):
+                side = actor_side
+                cat = "military_kia"
+            elif any(w in context for w in ["civilian", "children", "resident"]):
+                side = target_side if target_side in stats else "iran"
+                cat = "civilian_kia"
+            elif any(w in context for w in ["sailor", "crew", "idf", "personnel", "soldier",
+                                            "officer", "cleric", "operativ", "service member"]):
+                if any(w in context for w in ["us ", "american", "idf personnel", "idf killed"]):
+                    side = "us_israel"
+                elif any(w in context for w in ["irgc", "hezbollah", "houthi", "militia",
+                                                "iranian", "operativ"]):
+                    side = "iran"
+                elif "idf" in context and "hezbollah" not in context:
+                    side = "us_israel"
+                elif "sailor" in context or "crew" in context:
+                    side = target_side if target_side in stats else "us_israel"
+                else:
+                    side = target_side if target_side in stats else "iran"
+                cat = "military_kia"
+            else:
+                side = target_side if target_side in stats else "iran"
+                cat = "military_kia"
+            if side in stats:
+                stats[side][cat] += n
+                evidence.append({
+                    "side": side, "cat": cat, "n": n,
+                    "phrase": m.group(0).strip(),
+                    "source": source_name,
+                    "actor": inc.actor or "", "target": inc.target_actor or "",
+                })
+
+        # "Khamenei killed" 등 이름 단위 사망 (숫자 없음) — 주요 인물 1명씩
+        for pattern in [r'(?:Khamenei|Ghaani|commander)\s+(?:killed|eliminated|dead)',
+                        r'(?:killed|eliminated)\s+(?:Khamenei|Ghaani|commander)']:
+            mm = _re.search(pattern, dmg, _re.IGNORECASE)
+            if mm:
+                side = target_side if target_side in stats else "iran"
+                stats[side]["military_kia"] += 1
+                evidence.append({
+                    "side": side, "cat": "military_kia", "n": 1,
+                    "phrase": mm.group(0).strip(),
+                    "source": source_name,
+                    "actor": inc.actor or "", "target": inc.target_actor or "",
+                })
+
+        # 부상 패턴: "X wounded", "X injured"
+        for m in _re.finditer(r'(\d+)\s+[\w\s]{0,30}?\b(?:wounded|injured|부상)', dmg, _re.IGNORECASE):
+            n = int(m.group(1))
+            context = m.group(0).lower()
+            if any(w in context for w in ["us ", "american", "sailor"]):
+                side = "us_israel"
+            elif any(w in context for w in ["iranian", "irgc", "hezbollah", "police"]):
+                side = "iran"
+            else:
+                side = target_side if target_side in stats else "iran"
+            if side in stats:
+                stats[side]["wounded"] += n
+                evidence.append({
+                    "side": side, "cat": "wounded", "n": n,
+                    "phrase": m.group(0).strip(),
+                    "source": source_name,
+                    "actor": inc.actor or "", "target": inc.target_actor or "",
+                })
+
+    return {"stats": stats, "evidence": evidence}
 
 
 def _format_incident(inc, doc):
@@ -73,12 +185,16 @@ def _format_incident(inc, doc):
         "damage_severity": classify_damage_severity(inc.damage_summary),
         "confidence": inc.confidence,
         "verified_status": translate_verified_status(inc.verified_status),
+        "verified_status_5level": inc.verified_status,
         "verified_status_raw": inc.verified_status,
         "is_iran_side": side == "iran",
         "is_us_side": side == "us_israel",
         "actor_side": side,
         "source_url": doc.url if doc else "#",
+        "source_publisher": doc.publisher if doc else "Unknown",
+        "source_published_at": doc.published_at.isoformat() if doc and doc.published_at else None,
         "source_title": doc.title if doc else "미상",
+        "source_type": _classify_source_type(doc.publisher if doc else ""),
     }
 
 
@@ -267,6 +383,30 @@ def home(request: Request, db: Session = Depends(get_db)):
     timeline = _build_timeline(incident_pairs)
     war_status = _build_war_status(incident_pairs)
     strategic = _build_strategic_analysis(incident_pairs)
+
+    # KIA 통계 (전쟁 배너에 표시) + 근거 evidence
+    _cas_result = _estimate_casualties(incident_pairs)
+    casualties = _cas_result["stats"]
+    cas_evidence = _cas_result["evidence"]
+
+    # 핵심 사건 TOP 3 — ID만 추출하여 타임라인에서 별표 표시
+    _sorted_by_conf = sorted(incidents, key=lambda x: x.get("confidence", 0), reverse=True)
+    top_incident_ids = {x["id"] for x in _sorted_by_conf[:3]}
+    # 타임라인 아이템에 is_top 플래그 부여
+    for tev in timeline:
+        tev["is_top"] = tev["id"] in top_incident_ids
+
+    # Determine data mode
+    report = read_status()
+    doc_count = metrics.get("documents_in_window", 0)
+    state = report.get("state", "idle")
+    if doc_count > 0 and state == "completed":
+        data_mode = "live"
+    elif doc_count > 0:
+        data_mode = "demo"
+    else:
+        data_mode = "offline"
+
     return templates.TemplateResponse(
         request,
         "index.html",
@@ -277,9 +417,12 @@ def home(request: Request, db: Session = Depends(get_db)):
             "war_status": war_status,
             "strategic": strategic,
             "metrics": metrics,
-            "report_status": read_status(),
+            "report_status": report,
+            "data_mode": data_mode,
             "public_mode": settings.public_mode,
             "site_title": settings.site_title,
+            "casualties": casualties,
+            "cas_evidence": cas_evidence,
         },
     )
 
@@ -339,6 +482,53 @@ def refresh_outputs(request: Request, db: Session = Depends(get_db)):
     set_last_result(result)
     update_status(state="completed", step="완료", message=result["message"])
     return result
+
+
+@router.get("/api/methodology")
+def api_methodology():
+    """OSINT 방법론 및 파이프라인 개요."""
+    return {
+        "methodology": {
+            "ko": {
+                "data_collection": "Google News RSS + GDELT 시간당 수집",
+                "deduplication": "3단계 중복제거 (URL unique, 콘텐츠 해시, 피드 내장)",
+                "extraction": "규칙 기반 키워드 매칭 (행위자, 수단, 대상, 위치)",
+                "verification": "5단계 확정도 시스템 (확인됨/유력/주장/논쟁중/철회됨)",
+                "confidence_scoring": "출처 신뢰도 + 증거 요소 기반 (0.05~0.99)",
+                "location_inference": "96개 지점 지리 추론 (utils.py)",
+            },
+            "en": {
+                "data_collection": "Hourly ingest from Google News RSS + GDELT",
+                "deduplication": "3-layer dedup (URL unique, content hash, feed-level in-memory)",
+                "extraction": "Rule-based keyword matching (actors, means, targets, locations)",
+                "verification": "5-level verification system (confirmed/likely/claimed/disputed/retracted)",
+                "confidence_scoring": "Source reliability + evidence factors (0.05-0.99)",
+                "location_inference": "96-place geo lookup from utils.py",
+            }
+        }
+    }
+
+
+@router.get("/api/pipeline/status")
+def api_pipeline_status(db: Session = Depends(get_db)):
+    """파이프라인 상태 및 데이터베이스 통계."""
+    from app.models.entities import Incident, SourceDocument
+    from sqlalchemy import func
+
+    status = read_status()
+    doc_count = db.query(func.count(SourceDocument.id)).scalar() or 0
+    inc_count = db.query(func.count(Incident.id)).scalar() or 0
+    last_ingest = db.query(func.max(SourceDocument.ingestion_time)).scalar()
+
+    return {
+        "last_run_at": status.get("updated_at"),
+        "last_success_at": status.get("last_success_at"),
+        "last_failure_reason": status.get("last_failure_reason"),
+        "current_state": status.get("state", "idle"),
+        "documents_total": doc_count,
+        "incidents_total": inc_count,
+        "last_ingest_at": last_ingest.isoformat() if last_ingest else None,
+    }
 
 
 @router.get("/report/status")
