@@ -65,7 +65,7 @@ For academic and research purposes.
 
 ---
 
-# 이란-미국 전쟁 OSINT 모니터 v20d
+# 이란-미국 전쟁 OSINT 모니터
 
 2026 이란전쟁(2월 28일 개전) 실시간 OSINT 대시보드.
 
