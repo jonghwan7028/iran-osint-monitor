@@ -46,12 +46,14 @@ html, body { margin:0; padding:0; height:100%; background:#f5f5f7; color:#1d1d1f
 .legend .sq { width:16px; height:16px; border:2px solid #ff3b30; background:rgba(255,59,48,0.18); border-radius:3px; }
 .legend .c-blue { width:14px; height:14px; border-radius:50%; background:#0071e3; }
 .legend .c-yel  { width:14px; height:14px; border-radius:50%; background:#ff9500; }
-.lang-toggle {
-  position:absolute; top:14px; right:14px; z-index:600;
+.lang-toggle, .date-filter {
+  position:absolute; top:14px; z-index:600;
   background:rgba(255,255,255,0.95); border:1px solid rgba(0,0,0,0.08); color:#1d1d1f;
   padding:7px 14px; border-radius:999px; box-shadow:0 1px 3px rgba(0,0,0,0.06); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; font-size:12px; font-weight:600;
 }
-.lang-toggle:hover { background:#ffffff; }
+.lang-toggle { right:14px; }
+.date-filter { right:120px; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%231d1d1f'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:26px; }
+.lang-toggle:hover, .date-filter:hover { background:#ffffff; }
 .empty {
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   background:rgba(255,255,255,0.97); border:1px solid rgba(0,0,0,0.1); color:#1d1d1f;
@@ -95,17 +97,27 @@ html, body { margin:0; padding:0; height:100%; background:#f5f5f7; color:#1d1d1f
 </head>
 <body>
 <div id="map"></div>
-<button class="lang-toggle" id="langToggle" title="클릭 시 기본 언어를 전환합니다">🇰🇷 한국어 / English</button>
+<select class="date-filter" id="dateFilter" title="Filter by date">
+  <option value="all">All</option>
+  <option value="1">1d</option>
+  <option value="3">3d</option>
+  <option value="7">7d</option>
+  <option value="14">14d</option>
+  <option value="30">1mo</option>
+</select>
+<button class="lang-toggle" id="langToggle" title="Toggle language">🇬🇧 English / 한국어</button>
 <div class="legend" id="mapLegend">
-  <h4 class="leg-title">범 례</h4>
-  <div class="row"><span class="sq"></span><span class="leg-iran">이란/대리세력 공격</span></div>
-  <div class="row"><span class="c-blue"></span><span class="leg-us">미국/이스라엘 타격</span></div>
-  <div class="row"><span class="c-yel"></span><span class="leg-other">기타 (외교·정치)</span></div>
+  <h4 class="leg-title">Legend</h4>
+  <div class="row"><span class="sq"></span><span class="leg-iran">Iran / Proxy Attack</span></div>
+  <div class="row"><span class="c-blue"></span><span class="leg-us">US / Israel Strike</span></div>
+  <div class="row"><span class="c-yel"></span><span class="leg-other">Other (Diplomatic)</span></div>
 </div>
 __EMPTY_BANNER__
 <script>
 const INCIDENTS = __INCIDENTS_JSON__;
 let DEFAULT_LANG = 'en';  // 클릭으로 전체 전환
+let CURRENT_DATE_FILTER = 'all';  // 날짜 필터 상태
+const markersAndBoundsById = new Map();  // {inc.id: {layer, boundsRect}}
 
 const map = L.map('map', {
   center: [28.0, 49.0],
@@ -178,8 +190,6 @@ function shortSummaryEn(inc) {
   return `${inc.en.actor} → ${inc.en.target_actor}\\n📍 ${inc.en.location_name}\\n🗓 ${inc.pub_date || '-'}\\n${inc.en.damage_summary.slice(0, 90)}${inc.en.damage_summary.length > 90 ? '…' : ''}`;
 }
 
-const markersById = new Map();
-
 function bindPopup(layer, inc) {
   const popup = L.popup({ maxWidth: 620, minWidth: 560, autoPan: true, className: 'osint-popup' });
   const open = (lang) => {
@@ -195,7 +205,13 @@ function bindPopup(layer, inc) {
       };
     }, 0);
   };
-  layer.on('click', () => open(DEFAULT_LANG));
+  layer.on('click', () => {
+    open(DEFAULT_LANG);
+    // 부모 페이지에 클릭된 사건 ID 전달 (목록 연동)
+    if (window.parent !== window) {
+      window.parent.postMessage({type:'focusRow', id: inc.id}, '*');
+    }
+  });
 
   // Hover 툴팁: 한국어 요약을 기본으로 (필요 정보를 최대한 담되 글자는 작게)
   const tipClass = 'ko-tip ' + (inc.actor_side || '');
@@ -226,7 +242,6 @@ function bindPopup(layer, inc) {
     offset: [8, 0]
   });
   layer._refreshTooltip = () => layer.setTooltipContent(buildTip());
-  markersById.set(inc.id, layer);
 }
 
 const bounds = [];
@@ -249,6 +264,7 @@ INCIDENTS.forEach(inc => {
       fill: true, fillColor: '#ff3b30', fillOpacity: 0.9
     }).addTo(map);
     bindPopup(dot, inc);
+    markersAndBoundsById.set(inc.id, {layer: dot, boundsRect: rect});
   } else {
     const color = inc.actor_side === 'us_israel' ? '#0071e3' : '#ff9500';
     const cm = L.circleMarker([lat, lon], {
@@ -256,6 +272,7 @@ INCIDENTS.forEach(inc => {
       fill: true, fillColor: color, fillOpacity: 0.7
     }).addTo(map);
     bindPopup(cm, inc);
+    markersAndBoundsById.set(inc.id, {layer: cm, boundsRect: null});
   }
 });
 
@@ -279,22 +296,117 @@ function updateLegend(lang) {
   el.querySelector('.leg-other').textContent = t.other;
 }
 
+function isIncidentWithinDateRange(incDateStr, days) {
+  if (days === 'all') return true;
+  if (!incDateStr) return false;
+  const incDate = new Date(incDateStr);
+  const now = new Date();
+  const diffMs = now - incDate;
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  return diffDays <= parseInt(days);
+}
+
+function applyDateFilter(days) {
+  CURRENT_DATE_FILTER = days;
+  markersAndBoundsById.forEach(({layer, boundsRect}, incId) => {
+    const inc = INCIDENTS.find(i => i.id === incId);
+    if (inc && isIncidentWithinDateRange(inc.pub_date, days)) {
+      layer.addTo(map);
+      if (boundsRect) boundsRect.addTo(map);
+    } else {
+      map.removeLayer(layer);
+      if (boundsRect && map.hasLayer(boundsRect)) map.removeLayer(boundsRect);
+    }
+  });
+}
+
+document.getElementById('dateFilter').addEventListener('change', (e) => {
+  applyDateFilter(e.target.value);
+});
+
 document.getElementById('langToggle').addEventListener('click', () => {
   DEFAULT_LANG = DEFAULT_LANG === 'ko' ? 'en' : 'ko';
   const btn = document.getElementById('langToggle');
   btn.textContent = DEFAULT_LANG === 'ko' ? '🇰🇷 한국어 / English' : '🇬🇧 English / 한국어';
   updateLegend(DEFAULT_LANG);
   // 열려있는 팝업을 현재 기본 언어로 재렌더링
-  markersById.forEach((layer, id) => {
+  markersAndBoundsById.forEach(({layer}, incId) => {
     if (layer._refreshTooltip) layer._refreshTooltip();
     if (layer.isPopupOpen && layer.isPopupOpen()) {
-      const inc = INCIDENTS.find(i => i.id === id);
+      const inc = INCIDENTS.find(i => i.id === incId);
       if (inc) {
         layer.getPopup().setContent(renderPopupHTML(inc, DEFAULT_LANG));
         layer.openPopup();
       }
     }
   });
+});
+
+// === 부모 페이지 ↔ 지도 연동: highlight / unhighlight ===
+const highlightedLayers = [];
+window.addEventListener('message', (e) => {
+  const msg = e.data;
+  if (!msg || !msg.type) return;
+
+  if (msg.type === 'setLang') {
+    const lang = (msg.lang === 'ko') ? 'ko' : 'en';
+    if (lang !== DEFAULT_LANG) {
+      DEFAULT_LANG = lang;
+      const btn = document.getElementById('langToggle');
+      btn.textContent = DEFAULT_LANG === 'ko' ? '🇰🇷 한국어 / English' : '🇬🇧 English / 한국어';
+      updateLegend(DEFAULT_LANG);
+      updateDateFilterLabels(DEFAULT_LANG);
+      markersAndBoundsById.forEach(({layer}, incId) => {
+        if (layer._refreshTooltip) layer._refreshTooltip();
+      });
+    }
+    return;
+  }
+
+  if (msg.type === 'highlight') {
+    const entry = markersAndBoundsById.get(msg.id);
+    if (!entry) return;
+    // 기존 하이라이트 해제
+    highlightedLayers.forEach(l => { if (l._origStyle) l.setStyle(l._origStyle); });
+    highlightedLayers.length = 0;
+    // 하이라이트 적용
+    const layer = entry.layer;
+    layer._origStyle = {color: layer.options.color, weight: layer.options.weight, fillOpacity: layer.options.fillOpacity};
+    layer.setStyle({color: '#ffd700', weight: 4, fillOpacity: 0.9});
+    highlightedLayers.push(layer);
+    if (entry.boundsRect) {
+      entry.boundsRect._origStyle = {color: entry.boundsRect.options.color, weight: entry.boundsRect.options.weight};
+      entry.boundsRect.setStyle({color: '#ffd700', weight: 3});
+      highlightedLayers.push(entry.boundsRect);
+    }
+    // 해당 마커로 패닝
+    map.panTo(layer.getLatLng(), {animate: true});
+  }
+
+  if (msg.type === 'unhighlight') {
+    highlightedLayers.forEach(l => { if (l._origStyle) l.setStyle(l._origStyle); });
+    highlightedLayers.length = 0;
+  }
+});
+
+// === 날짜 필터 이중언어 라벨 ===
+const DATE_FILTER_I18N = {
+  ko: {'all':'전체','1':'1일','3':'3일','7':'7일','14':'14일','30':'1개월'},
+  en: {'all':'All','1':'1d','3':'3d','7':'7d','14':'14d','30':'1mo'}
+};
+function updateDateFilterLabels(lang) {
+  const sel = document.getElementById('dateFilter');
+  if (!sel) return;
+  const labels = DATE_FILTER_I18N[lang] || DATE_FILTER_I18N.en;
+  Array.from(sel.options).forEach(opt => {
+    if (labels[opt.value]) opt.textContent = labels[opt.value];
+  });
+}
+
+// 언어 전환 시 날짜 필터 라벨도 함께 갱신하도록 기존 핸들러 보완
+const origLangBtn = document.getElementById('langToggle');
+origLangBtn.addEventListener('click', () => {
+  updateDateFilterLabels(DEFAULT_LANG);
 });
 </script>
 </body>
