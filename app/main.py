@@ -10,10 +10,12 @@ import app.models.entities  # noqa: F401 – register all models before create_a
 Base.metadata.create_all(bind=engine)
 
 BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
+STATIC_DIR.mkdir(parents=True, exist_ok=True)  # 프로덕션에서 빈 폴더 자동 생성
 
 app = FastAPI(title=settings.app_name)
 app.include_router(router)
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.on_event("startup")
 def startup_seed():
