@@ -105,7 +105,7 @@ html, body { margin:0; padding:0; height:100%; background:#f5f5f7; color:#1d1d1f
 __EMPTY_BANNER__
 <script>
 const INCIDENTS = __INCIDENTS_JSON__;
-let DEFAULT_LANG = 'ko';  // 클릭으로 전체 전환
+let DEFAULT_LANG = 'en';  // 클릭으로 전체 전환
 
 const map = L.map('map', {
   center: [28.0, 49.0],
