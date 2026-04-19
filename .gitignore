@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+.env
+.env.local
+app/data/*.db
+app/data/*.db-journal
+app/static/incidents_map.html
+app/static/daily_brief.html
+app/static/report_status.json
+.DS_Store
+*.egg-info/
+dist/
+build/

@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OSINT 대시보드 — 2026 이란전쟁 모니터</title>
+    <style>
+        /* ============================================================
+           Apple-style LIGHT design system (inspired by macOS · iOS 17)
+           ============================================================ */
+        :root {
+            --bg: #f5f5f7;
+            --surface: #ffffff;
+            --surface-2: #fbfbfd;
+            --surface-tint: #f2f2f5;
+            --border: rgba(0, 0, 0, 0.08);
+            --border-strong: rgba(0, 0, 0, 0.14);
+            --text: #1d1d1f;
+            --text-soft: #424245;
+            --text-muted: #6e6e73;
+            --text-dim: #86868b;
+
+            --accent: #0071e3;
+            --accent-soft: rgba(0, 113, 227, 0.08);
+            --danger: #ff3b30;
+            --danger-soft: rgba(255, 59, 48, 0.08);
+            --warning: #ff9500;
+            --warning-soft: rgba(255, 149, 0, 0.1);
+            --success: #30d158;
+            --success-soft: rgba(48, 209, 88, 0.12);
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --radius-xl: 22px;
+
+            --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.08);
+
+            --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                         "Helvetica Neue", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.55;
+            font-size: 14px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Header */
+        .header {
+            position: sticky; top: 0; z-index: 50;
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            background: rgba(255, 255, 255, 0.72);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 32px;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .header h1 {
+            font-size: 18px; font-weight: 600; letter-spacing: -0.01em;
+            display: flex; align-items: center; gap: 10px; color: var(--text);
+        }
+        .header h1 .logo-dot {
+            display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--danger), var(--warning));
+            box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.15);
+        }
+        .badge {
+            font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+            padding: 3px 9px; border-radius: 999px;
+            background: var(--danger-soft); color: var(--danger);
+        }
+        .badge.live {
+            background: var(--success-soft); color: #1f8b3a;
+            position: relative; padding-left: 18px;
+        }
+        .badge.live::before {
+            content: ''; position: absolute; top: 50%; left: 8px;
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--success); transform: translateY(-50%);
+            box-shadow: 0 0 0 3px rgba(48, 209, 88, 0.25);
+            animation: pulse-live 1.8s ease-in-out infinite;
+        }
+        @keyframes pulse-live { 0%, 100% { opacity: 1 } 50% { opacity: 0.55 } }
+
+        .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .btn {
+            background: var(--surface); color: var(--text);
+            border: 1px solid var(--border);
+            padding: 7px 14px; border-radius: 999px;
+            font: inherit; font-size: 12.5px; font-weight: 500;
+            cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: all 0.18s ease;
+            box-shadow: var(--shadow-xs);
+        }
+        .btn:hover { border-color: var(--border-strong); background: var(--surface-2); transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn.primary {
+            background: var(--accent); color: white;
+            border-color: transparent; font-weight: 600;
+            box-shadow: 0 2px 6px rgba(0, 113, 227, 0.35);
+        }
+        .btn.primary:hover { background: #0063c9; }
+        .btn.seed {
+            background: #f7f0ff; color: #6c3fc7;
+            border-color: rgba(108, 63, 199, 0.2);
+        }
+        .btn.seed:hover { background: #efe2ff; }
+
+        .public-badge {
+            color: var(--text-muted); font-size: 12px; padding: 4px 12px;
+            background: var(--surface-tint); border-radius: 999px;
+            border: 1px solid var(--border);
+        }
+        /* Language selector */
+        .lang-select {
+            appearance: none; -webkit-appearance: none;
+            background: var(--surface); color: var(--text);
+            border: 1px solid var(--border);
+            padding: 7px 30px 7px 12px; border-radius: 999px;
+            font: inherit; font-size: 12.5px; font-weight: 500;
+            cursor: pointer; box-shadow: var(--shadow-xs);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236e6e73'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            transition: all 0.18s ease;
+        }
+        .lang-select:hover { border-color: var(--border-strong); background-color: var(--surface-2); }
+        .lang-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,113,227,0.15); }
+        /* Multilingual spans — hide all by default, JS shows matching lang */
+        .ml { display: none; }
+        .ml[data-lang="ko"] { display: inline; }
+
+        /* Layout */
+        .container { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
+        .section-title {
+            font-size: 13px; font-weight: 600;
+            color: var(--text-muted); letter-spacing: 0.02em;
+            text-transform: uppercase;
+            margin: 0 0 12px 2px;
+        }
+
+        /* ─── War Status Banner ─── */
+        .war-banner {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            margin-bottom: 18px;
+            box-shadow: var(--shadow-sm);
+            display: flex; align-items: center; gap: 24px;
+            flex-wrap: wrap;
+        }
+        .war-day-block {
+            display: flex; align-items: center; gap: 14px;
+            flex-shrink: 0;
+        }
+        .war-day-num {
+            font-size: 44px; font-weight: 800; letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--danger) 0%, var(--warning) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+        .war-day-label {
+            font-size: 13px; font-weight: 600; color: var(--text);
+            line-height: 1.3;
+        }
+        .war-day-label small {
+            display: block; font-size: 11px; color: var(--text-muted);
+            font-weight: 400; margin-top: 2px;
+        }
+        .war-divider {
+            width: 1px; height: 40px; background: var(--border);
+            flex-shrink: 0;
+        }
+        .war-latest {
+            flex: 1; min-width: 200px;
+        }
+        .war-latest-label {
+            font-size: 10px; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.04em;
+            margin-bottom: 6px;
+        }
+        .war-latest-title {
+            font-size: 14px; font-weight: 600; color: var(--text);
+            margin-bottom: 3px;
+        }
+        .war-latest-title.side-iran { color: var(--danger); }
+        .war-latest-title.side-us_israel { color: var(--accent); }
+        .war-latest-title.side-other { color: #b86900; }
+        .war-latest-detail {
+            font-size: 12px; color: var(--text-soft); line-height: 1.5;
+        }
+        .war-latest-meta {
+            font-size: 10.5px; color: var(--text-dim); margin-top: 4px;
+        }
+
+        /* ─── Stats (compact 1/4) ─── */
+        .stats-bar {
+            display: flex; gap: 0; margin-bottom: 18px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-xs);
+            overflow: hidden;
+        }
+        .stat-item {
+            flex: 1; padding: 10px 16px;
+            display: flex; align-items: center; gap: 10px;
+            border-right: 1px solid var(--border);
+            transition: background 0.15s ease;
+        }
+        .stat-item:last-child { border-right: none; }
+        .stat-item:hover { background: var(--surface-2); }
+        .stat-item .si-value {
+            font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1;
+        }
+        .stat-item .si-label {
+            font-size: 10.5px; color: var(--text-muted);
+            font-weight: 500; line-height: 1.3;
+        }
+        .stat-item.accent .si-value { color: var(--accent); }
+        .stat-item.danger .si-value { color: var(--danger); }
+        .stat-item.success .si-value { color: #1f8b3a; }
+        .stat-item.warning .si-value { color: #b86900; }
+
+        /* ─── Strategic Analysis ─── */
+        .strat-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+            margin-bottom: 24px;
+        }
+        .strat-col .strat-header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 12px 16px;
+            font-size: 13px; font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+        }
+        .strat-col .strat-header .strat-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+        .strat-col.iran .strat-header .strat-dot { background: var(--danger); }
+        .strat-col.us .strat-header .strat-dot { background: var(--accent); }
+        .strat-col.other .strat-header .strat-dot { background: var(--warning); }
+        .strat-col.iran .strat-header { color: var(--danger); }
+        .strat-col.us .strat-header { color: var(--accent); }
+        .strat-col.other .strat-header { color: #b86900; }
+        .strat-list { padding: 0; }
+        .strat-entry {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s ease;
+        }
+        .strat-entry:last-child { border-bottom: none; }
+        .strat-entry:hover { background: var(--surface-2); }
+        .strat-date {
+            font-size: 10px; font-weight: 600; color: var(--text-dim);
+            text-transform: uppercase; letter-spacing: 0.03em;
+            margin-bottom: 4px;
+        }
+        .strat-actors {
+            font-size: 12.5px; font-weight: 600; color: var(--text);
+            margin-bottom: 3px;
+        }
+        .strat-col.iran .strat-actors { color: var(--danger); }
+        .strat-col.us .strat-actors { color: var(--accent); }
+        .strat-col.other .strat-actors { color: #b86900; }
+        .strat-means {
+            font-size: 11px; color: var(--text-muted); margin-bottom: 6px;
+        }
+        .strat-purpose-label {
+            font-size: 9.5px; font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.04em;
+            margin-bottom: 3px;
+        }
+        .strat-purpose {
+            font-size: 12px; color: var(--text-soft); line-height: 1.55;
+            padding-left: 10px;
+            border-left: 2px solid var(--border);
+        }
+        .strat-col.iran .strat-purpose { border-left-color: rgba(255,59,48,0.3); }
+        .strat-col.us .strat-purpose { border-left-color: rgba(0,113,227,0.3); }
+        .strat-col.other .strat-purpose { border-left-color: rgba(255,149,0,0.3); }
+        .strat-tact {
+            font-size: 11px; color: var(--text-dim); margin-top: 5px;
+            font-style: italic;
+        }
+        .strat-empty {
+            padding: 30px 16px; text-align: center; color: var(--text-dim);
+            font-size: 12px;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid; grid-template-columns: 2.2fr 1fr; gap: 16px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .card-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600; font-size: 14px;
+            display: flex; align-items: center; justify-content: space-between;
+            color: var(--text);
+            background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+        }
+        .card-header small { font-weight: 400; color: var(--text-muted); font-size: 11.5px; }
+        .card-body { padding: 16px 20px; }
+        iframe {
+            width: 100%; height: 540px; border: none;
+            background: var(--surface-tint);
+        }
+
+        /* Pipeline status */
+        .status-line {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+            font-size: 13px;
+        }
+        .status-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+        .status-dot.idle { background: var(--text-dim); }
+        .status-dot.running { background: var(--warning); animation: pulse-sm 1s infinite; }
+        .status-dot.completed { background: var(--success); }
+        @keyframes pulse-sm { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .report-box pre {
+            background: var(--surface-tint); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 10px 12px;
+            font-family: "SF Mono", "Monaco", monospace;
+            font-size: 10.5px; line-height: 1.55; max-height: 200px;
+            overflow: auto; white-space: pre-wrap; word-break: break-word;
+            color: var(--text-soft);
+        }
+        .section-label {
+            font-size: 10.5px; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.04em;
+            margin: 14px 0 6px;
+        }
+        .history-list {
+            list-style: none; padding: 0; max-height: 140px; overflow: auto;
+            font-size: 11.5px; border-top: 1px solid var(--border);
+        }
+        .history-list li {
+            padding: 6px 0; border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        .history-list li strong { color: var(--text); font-weight: 600; }
+
+        /* Timeline */
+        .timeline-card { margin-bottom: 24px; }
+        .timeline-wrap {
+            position: relative; overflow-x: auto; overflow-y: hidden;
+            padding: 32px 28px 24px;
+            background:
+                radial-gradient(circle at 0% 50%, rgba(255, 59, 48, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 100% 50%, rgba(0, 113, 227, 0.05) 0%, transparent 40%),
+                var(--surface);
+        }
+        .timeline-track {
+            position: relative;
+            display: flex; align-items: flex-start; gap: 16px;
+            min-width: max-content; padding-top: 38px;
+        }
+        .timeline-track::before {
+            content: '';
+            position: absolute; left: 0; right: 0; top: 44px;
+            height: 2px;
+            background: linear-gradient(90deg,
+                var(--danger) 0%, rgba(255, 59, 48, 0.5) 22%,
+                rgba(0, 0, 0, 0.12) 50%,
+                rgba(0, 113, 227, 0.5) 78%, var(--accent) 100%);
+            border-radius: 2px;
+        }
+        .tl-event {
+            position: relative; width: 280px; flex: 0 0 280px;
+            padding-top: 24px; cursor: pointer;
+            transition: transform 0.18s ease;
+        }
+        .tl-event:hover { transform: translateY(-3px); }
+        .tl-date {
+            position: absolute; top: -32px; left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px; font-weight: 600; color: var(--text);
+            background: var(--surface); border: 1px solid var(--border);
+            padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+            box-shadow: var(--shadow-xs);
+        }
+        .tl-day { font-size: 9.5px; color: var(--text-muted); margin-left: 5px; font-weight: 500; }
+        .tl-dot {
+            position: absolute; top: 6px; left: 50%;
+            transform: translateX(-50%);
+            width: 14px; height: 14px; border-radius: 50%;
+            border: 3px solid var(--surface);
+            box-shadow: 0 0 0 2px var(--border-strong);
+        }
+        .tl-event.side-iran .tl-dot {
+            background: var(--danger);
+            box-shadow: 0 0 0 2px var(--danger), 0 0 10px rgba(255,59,48,0.35);
+        }
+        .tl-event.side-us_israel .tl-dot {
+            background: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent), 0 0 10px rgba(0,113,227,0.35);
+        }
+        .tl-event.side-other .tl-dot {
+            background: var(--warning);
+            box-shadow: 0 0 0 2px var(--warning), 0 0 8px rgba(255,149,0,0.35);
+        }
+        .tl-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-left: 3px solid var(--border-strong);
+            border-radius: var(--radius-md);
+            padding: 11px 13px; font-size: 11.5px; line-height: 1.45;
+            box-shadow: var(--shadow-xs);
+            transition: box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+        .tl-event.side-iran .tl-card { border-left-color: var(--danger); }
+        .tl-event.side-us_israel .tl-card { border-left-color: var(--accent); }
+        .tl-event.side-other .tl-card { border-left-color: var(--warning); }
+        .tl-event:hover .tl-card { box-shadow: var(--shadow-sm); }
+        .tl-actors {
+            font-size: 12px; font-weight: 600; color: var(--text);
+            margin-bottom: 4px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .tl-event.side-iran .tl-actors { color: var(--danger); }
+        .tl-event.side-us_israel .tl-actors { color: var(--accent); }
+        .tl-event.side-other .tl-actors { color: #b86900; }
+        .tl-loc {
+            font-size: 10.5px; color: var(--text-muted); margin-bottom: 5px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .tl-damage {
+            font-size: 11px; color: var(--text-soft);
+            display: -webkit-box; -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .tl-means {
+            font-size: 10.5px; color: var(--text-muted); margin-bottom: 4px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .tl-strat-label {
+            font-size: 9px; font-weight: 700; color: var(--text-dim);
+            text-transform: uppercase; letter-spacing: 0.04em;
+            margin: 8px 0 3px;
+        }
+        .tl-strat {
+            font-size: 10.5px; color: var(--text-soft); line-height: 1.5;
+            padding-left: 8px; border-left: 2px solid var(--border);
+        }
+        .tl-event.side-iran .tl-strat { border-left-color: rgba(255,59,48,0.3); }
+        .tl-event.side-us_israel .tl-strat { border-left-color: rgba(0,113,227,0.3); }
+        .tl-event.side-other .tl-strat { border-left-color: rgba(255,149,0,0.3); }
+        .tl-tact {
+            font-size: 10px; color: var(--text-dim); margin-top: 4px;
+            font-style: italic;
+        }
+        .timeline-hint {
+            font-size: 11px; color: var(--text-dim);
+            padding: 4px 20px 10px; text-align: right; font-style: italic;
+        }
+
+        /* Incident table */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th {
+            background: var(--surface-2); color: var(--text-muted); font-weight: 600;
+            font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;
+            padding: 11px 14px; text-align: left;
+            position: sticky; top: 0; white-space: nowrap;
+            border-bottom: 1px solid var(--border);
+        }
+        td {
+            padding: 11px 14px; border-bottom: 1px solid var(--border);
+            vertical-align: top; color: var(--text-soft);
+        }
+        tr:hover td { background: var(--accent-soft); }
+        tr.iran-actor td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+        .pill {
+            display: inline-block; padding: 3px 9px; border-radius: 999px;
+            font-size: 10.5px; font-weight: 600;
+        }
+        .pill.verified { background: var(--success-soft); color: #1f8b3a; }
+        .pill.partially_verified { background: var(--warning-soft); color: #b86900; }
+        .pill.unverified { background: var(--danger-soft); color: var(--danger); }
+        .severity-high { color: var(--danger); font-weight: 600; }
+        .severity-medium { color: #b86900; font-weight: 500; }
+        .severity-low { color: var(--accent); font-weight: 500; }
+        .actor-iran { color: var(--danger); font-weight: 600; }
+        .actor-us { color: var(--accent); font-weight: 600; }
+        .actor-other { color: #b86900; font-weight: 600; }
+
+        /* Clickable term */
+        .term {
+            cursor: pointer;
+            border-bottom: 1px dashed rgba(0, 113, 227, 0.4);
+            transition: color 0.15s ease, border-color 0.15s ease;
+            padding: 0 1px;
+        }
+        .term:hover { color: var(--accent); border-bottom-color: var(--accent); }
+        .term.weapon:hover { color: #8e3f0f; border-bottom-color: var(--warning); }
+        .term.target:hover { color: var(--danger); border-bottom-color: var(--danger); }
+        .term::after {
+            content: ' ⓘ'; font-size: 9.5px; color: var(--text-dim);
+            opacity: 0.6;
+        }
+        .term:hover::after { opacity: 1; color: inherit; }
+
+        /* ── Feedback widget ── */
+        .fb-section {
+            max-width: 680px; margin: 32px auto 0; padding: 0 20px;
+        }
+        .fb-card {
+            background: var(--surface); border-radius: 16px;
+            border: 1px solid var(--border); padding: 24px 28px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .fb-title {
+            font-size: 15px; font-weight: 600; color: var(--text);
+            margin: 0 0 16px;
+        }
+        .fb-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+        .fb-cat {
+            flex: 1; min-width: 140px;
+            padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border);
+            font-size: 13px; background: var(--surface); color: var(--text);
+            -webkit-appearance: none; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2386868b'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 10px center;
+            padding-right: 28px;
+        }
+        .fb-stars { display: flex; gap: 2px; align-items: center; }
+        .fb-star {
+            font-size: 20px; cursor: pointer; color: var(--border-strong);
+            transition: color 0.15s; background: none; border: none; padding: 0 2px;
+            line-height: 1;
+        }
+        .fb-star.active { color: #ff9500; }
+        .fb-star:hover { color: #ff9500; }
+        .fb-msg {
+            width: 100%; min-height: 64px; resize: vertical;
+            border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px 14px; font-size: 13px; font-family: inherit;
+            background: var(--surface); color: var(--text);
+        }
+        .fb-msg::placeholder { color: var(--text-dim); }
+        .fb-msg:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+        .fb-submit {
+            padding: 8px 20px; border-radius: 10px; border: none;
+            background: var(--accent); color: #fff; font-size: 13px;
+            font-weight: 500; cursor: pointer; transition: background 0.15s;
+        }
+        .fb-submit:hover { background: #005ec4; }
+        .fb-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+        .fb-result {
+            font-size: 12px; color: var(--success); margin-top: 8px;
+            min-height: 18px;
+        }
+        .fb-result.error { color: var(--danger); }
+
+        /* Glossary modal */
+        .gloss-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: none; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .gloss-overlay.visible { display: flex; animation: fade-in 0.2s ease; }
+        @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+        .gloss-modal {
+            background: var(--surface); border-radius: var(--radius-xl);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            max-width: 520px; width: 100%; padding: 28px 28px 22px;
+            animation: pop-in 0.25s cubic-bezier(0.25, 0.46, 0.45, 1.06);
+            position: relative;
+        }
+        @keyframes pop-in {
+            from { transform: scale(0.95); opacity: 0 }
+            to { transform: scale(1); opacity: 1 }
+        }
+        .gloss-cat {
+            display: inline-block;
+            font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 3px 10px; border-radius: 999px;
+            margin-bottom: 10px;
+        }
+        .gloss-cat.weapon { background: var(--warning-soft); color: #b86900; }
+        .gloss-cat.target { background: var(--danger-soft); color: var(--danger); }
+        .gloss-cat.actor { background: var(--accent-soft); color: var(--accent); }
+        .gloss-cat.unknown { background: var(--surface-tint); color: var(--text-muted); }
+        .gloss-name-ko {
+            font-size: 20px; font-weight: 700; color: var(--text);
+            letter-spacing: -0.015em; margin-bottom: 2px;
+        }
+        .gloss-name-en {
+            font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;
+        }
+        .gloss-desc {
+            font-size: 13.5px; color: var(--text-soft); line-height: 1.65;
+            margin-bottom: 18px;
+        }
+        .gloss-links {
+            display: flex; gap: 8px; flex-wrap: wrap;
+            border-top: 1px solid var(--border); padding-top: 14px;
+        }
+        .gloss-link {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 7px 14px; border-radius: 999px;
+            font-size: 12px; font-weight: 500; text-decoration: none;
+            color: var(--accent);
+            background: var(--accent-soft);
+            border: 1px solid rgba(0, 113, 227, 0.15);
+            transition: all 0.15s ease;
+        }
+        .gloss-link:hover { background: var(--accent); color: white; }
+        .gloss-close {
+            position: absolute; top: 14px; right: 14px;
+            width: 28px; height: 28px; border-radius: 50%;
+            border: none; background: var(--surface-tint); color: var(--text-muted);
+            font-size: 14px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .gloss-close:hover { background: var(--border); color: var(--text); }
+        .gloss-loading {
+            padding: 40px 0; text-align: center; color: var(--text-muted); font-size: 13px;
+        }
+
+        /* Banners */
+        .network-banner {
+            background: var(--danger-soft); border: 1px solid rgba(255, 59, 48, 0.2);
+            border-radius: var(--radius-md); padding: 12px 20px; margin-bottom: 18px;
+            font-size: 12.5px; color: var(--danger);
+            display: none; align-items: center; gap: 8px;
+        }
+        .network-banner.visible { display: flex; }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state h3 { font-size: 20px; color: var(--text); margin-bottom: 10px; font-weight: 600; }
+
+        /* Responsive */
+        @media (max-width: 1100px) {
+            .main-grid, .strat-grid { grid-template-columns: 1fr; }
+            .stats-bar { flex-wrap: wrap; }
+            .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
+            .war-banner { flex-direction: column; align-items: flex-start; }
+            .war-divider { width: 100%; height: 1px; }
+            .container { padding: 18px; }
+            .header { padding: 12px 18px; }
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.18); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.28); }
+    </style>
+</head>
+<body>
+<header class="header">
+    <h1>
+        <span class="logo-dot"></span>
+        <span class="ml" data-lang="ko">2026 이란전쟁 OSINT 모니터</span><span class="ml" data-lang="en">2026 Iran War OSINT Monitor</span><span class="ml" data-lang="es">Monitor OSINT Guerra Irán 2026</span><span class="ml" data-lang="zh">2026伊朗战争OSINT监控</span><span class="ml" data-lang="ja">2026イラン戦争OSINTモニター</span><span class="ml" data-lang="fr">Moniteur OSINT Guerre Iran 2026</span><span class="ml" data-lang="de">2026 Iran-Krieg OSINT-Monitor</span>
+        <span class="badge"><span class="ml" data-lang="ko">전쟁 중</span><span class="ml" data-lang="en">At War</span><span class="ml" data-lang="es">En Guerra</span><span class="ml" data-lang="zh">战争中</span><span class="ml" data-lang="ja">戦争中</span><span class="ml" data-lang="fr">En Guerre</span><span class="ml" data-lang="de">Im Krieg</span></span>
+        <span class="badge live">LIVE</span>
+    </h1>
+    <div class="actions">
+        {% if not public_mode %}
+        <button class="btn primary" onclick="runAction('/pipeline/run')">&#9654; <span class="ml" data-lang="ko">수집 &amp; 분석</span><span class="ml" data-lang="en">Collect &amp; Analyze</span><span class="ml" data-lang="es">Recopilar y analizar</span><span class="ml" data-lang="zh">采集与分析</span><span class="ml" data-lang="ja">収集＆分析</span><span class="ml" data-lang="fr">Collecter &amp; analyser</span><span class="ml" data-lang="de">Sammeln &amp; Analysieren</span></button>
+        <button class="btn" onclick="runAction('/pipeline/refresh')">&#8635; <span class="ml" data-lang="ko">출력 갱신</span><span class="ml" data-lang="en">Refresh Output</span><span class="ml" data-lang="es">Actualizar salida</span><span class="ml" data-lang="zh">刷新输出</span><span class="ml" data-lang="ja">出力更新</span><span class="ml" data-lang="fr">Actualiser la sortie</span><span class="ml" data-lang="de">Ausgabe aktualisieren</span></button>
+        <button class="btn seed" onclick="runAction('/pipeline/seed')">&#9733; <span class="ml" data-lang="ko">검증 데이터 로드</span><span class="ml" data-lang="en">Load Seed Data</span><span class="ml" data-lang="es">Cargar datos de prueba</span><span class="ml" data-lang="zh">加载验证数据</span><span class="ml" data-lang="ja">検証データ読込</span><span class="ml" data-lang="fr">Charger données test</span><span class="ml" data-lang="de">Testdaten laden</span></button>
+        {% else %}
+        <span class="public-badge">&#128274; <span class="ml" data-lang="ko">자동 업데이트 · 1시간마다 갱신</span><span class="ml" data-lang="en">Auto-update · Refreshed hourly</span><span class="ml" data-lang="es">Actualización automática · cada hora</span><span class="ml" data-lang="zh">自动更新 · 每小时刷新</span><span class="ml" data-lang="ja">自動更新 · 毎時更新</span><span class="ml" data-lang="fr">Mise à jour auto · toutes les heures</span><span class="ml" data-lang="de">Auto-Update · stündlich aktualisiert</span></span>
+        {% endif %}
+        <a class="btn" id="mapOnlyLink" href="/map" target="_blank">&#127760; <span class="ml" data-lang="ko">지도 전체보기</span><span class="ml" data-lang="en">Full Map</span><span class="ml" data-lang="es">Mapa completo</span><span class="ml" data-lang="zh">全屏地图</span><span class="ml" data-lang="ja">全画面地図</span><span class="ml" data-lang="fr">Carte complète</span><span class="ml" data-lang="de">Vollbild-Karte</span></a>
+        <a class="btn" id="briefLink" href="/brief/daily" target="_blank">&#128196; <span class="ml" data-lang="ko">일일 브리핑</span><span class="ml" data-lang="en">Daily Brief</span><span class="ml" data-lang="es">Informe diario</span><span class="ml" data-lang="zh">每日简报</span><span class="ml" data-lang="ja">日次ブリーフィング</span><span class="ml" data-lang="fr">Briefing quotidien</span><span class="ml" data-lang="de">Tagesbericht</span></a>
+        <select class="lang-select" id="langSelect" title="Language">
+            <option value="ko" selected>🇰🇷 한국어</option>
+            <option value="en">🇬🇧 English</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="zh">🇨🇳 中文</option>
+            <option value="ja">🇯🇵 日本語</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="de">🇩🇪 Deutsch</option>
+        </select>
+    </div>
+</header>
+
+<main class="container">
+    <div id="networkBanner" class="network-banner">
+        &#9888; <span class="ml" data-lang="ko">네트워크 연결 불가 — 검증 시드 데이터 표시 중. "검증 데이터 로드"를 클릭하세요.</span><span class="ml" data-lang="en">Network unavailable — showing seed data. Click "Load Seed Data".</span><span class="ml" data-lang="es">Red no disponible — mostrando datos de prueba.</span><span class="ml" data-lang="zh">网络不可用 — 显示验证数据。</span><span class="ml" data-lang="ja">ネットワーク不可 — 検証データを表示中。</span><span class="ml" data-lang="fr">Réseau indisponible — affichage des données test.</span><span class="ml" data-lang="de">Netzwerk nicht verfügbar — Testdaten werden angezeigt.</span>
+    </div>
+
+    <!-- ★ 전쟁 경과 배너 -->
+    {% if war_status %}
+    <div class="war-banner">
+        <div class="war-day-block">
+            <div class="war-day-num">D+{{ war_status.war_day }}</div>
+            <div class="war-day-label">
+                <span class="ml" data-lang="ko">전쟁 {{ war_status.war_day }}일차</span><span class="ml" data-lang="en">Day {{ war_status.war_day }} of War</span><span class="ml" data-lang="es">Día {{ war_status.war_day }} de guerra</span><span class="ml" data-lang="zh">战争第{{ war_status.war_day }}天</span><span class="ml" data-lang="ja">戦争{{ war_status.war_day }}日目</span><span class="ml" data-lang="fr">Jour {{ war_status.war_day }} de guerre</span><span class="ml" data-lang="de">Kriegstag {{ war_status.war_day }}</span>
+                <small>{{ war_status.war_start }} → {{ war_status.today }}</small>
+            </div>
+        </div>
+        {% if war_status.latest %}
+        <div class="war-divider"></div>
+        <div class="war-latest">
+            <div class="war-latest-label"><span class="ml" data-lang="ko">최근 이벤트</span><span class="ml" data-lang="en">Latest Event</span><span class="ml" data-lang="es">Último evento</span><span class="ml" data-lang="zh">最新事件</span><span class="ml" data-lang="ja">最新イベント</span><span class="ml" data-lang="fr">Dernier événement</span><span class="ml" data-lang="de">Letztes Ereignis</span></div>
+            <div class="war-latest-title side-{{ war_status.latest.side }}">
+                <span class="bi-ko">{{ war_status.latest.actor_ko }} → {{ war_status.latest.target_ko }}</span>
+                <span class="bi-en" style="display:none;">{{ war_status.latest.actor_en }} → {{ war_status.latest.target_en }}</span>
+            </div>
+            <div class="war-latest-detail">
+                <span class="bi-ko">&#128205; {{ war_status.latest.location_ko }} · {{ war_status.latest.means_ko }}</span>
+                <span class="bi-en" style="display:none;">&#128205; {{ war_status.latest.location_en }} · {{ war_status.latest.means_en }}</span>
+            </div>
+            <div class="war-latest-detail" style="margin-top:2px;">
+                <span class="bi-ko">{{ war_status.latest.damage_ko }}</span>
+                <span class="bi-en" style="display:none;">{{ war_status.latest.damage_en }}</span>
+            </div>
+            <div class="war-latest-meta">{{ war_status.latest.date_str }} UTC</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- ★ 축소된 핵심 지표 바 -->
+    <div class="stats-bar">
+        <div class="stat-item accent">
+            <div class="si-value" id="docsCount">{{ metrics.documents }}</div>
+            <div class="si-label"><span class="ml" data-lang="ko">수집 문서</span><span class="ml" data-lang="en">Documents</span><span class="ml" data-lang="es">Documentos</span><span class="ml" data-lang="zh">文件</span><span class="ml" data-lang="ja">文書</span><span class="ml" data-lang="fr">Documents</span><span class="ml" data-lang="de">Dokumente</span><br><span id="dbSummary" style="font-size:9px; color:var(--text-dim);"></span></div>
+        </div>
+        <div class="stat-item danger">
+            <div class="si-value" id="incCount">{{ metrics.incidents }}</div>
+            <div class="si-label"><span class="ml" data-lang="ko">탐지 사건</span><span class="ml" data-lang="en">Incidents</span><span class="ml" data-lang="es">Incidentes</span><span class="ml" data-lang="zh">事件</span><span class="ml" data-lang="ja">事件</span><span class="ml" data-lang="fr">Incidents</span><span class="ml" data-lang="de">Vorfälle</span></div>
+        </div>
+        <div class="stat-item success">
+            <div class="si-value" id="verifiedCount">{{ metrics.verified_incidents }}</div>
+            <div class="si-label"><span class="ml" data-lang="ko">검증 완료</span><span class="ml" data-lang="en">Verified</span><span class="ml" data-lang="es">Verificados</span><span class="ml" data-lang="zh">已验证</span><span class="ml" data-lang="ja">検証済み</span><span class="ml" data-lang="fr">Vérifiés</span><span class="ml" data-lang="de">Verifiziert</span></div>
+        </div>
+        <div class="stat-item warning">
+            <div class="si-value" id="mappableCount">{{ metrics.mappable_incidents + metrics.fallback_mappable_incidents }}</div>
+            <div class="si-label"><span class="ml" data-lang="ko">지도 표시</span><span class="ml" data-lang="en">Mapped</span><span class="ml" data-lang="es">Mapeados</span><span class="ml" data-lang="zh">地图标记</span><span class="ml" data-lang="ja">地図表示</span><span class="ml" data-lang="fr">Cartographiés</span><span class="ml" data-lang="de">Kartiert</span></div>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <div class="card">
+            <div class="card-header">
+                <span>&#127760; <span class="ml" data-lang="ko">사건 지도</span><span class="ml" data-lang="en">Incident Map</span><span class="ml" data-lang="es">Mapa de incidentes</span><span class="ml" data-lang="zh">事件地图</span><span class="ml" data-lang="ja">事件マップ</span><span class="ml" data-lang="fr">Carte des incidents</span><span class="ml" data-lang="de">Vorfallskarte</span></span>
+                <small>
+                    <span style="color:var(--danger);">&#9679;</span> <span class="ml" data-lang="ko">이란측</span><span class="ml" data-lang="en">Iran</span><span class="ml" data-lang="es">Irán</span><span class="ml" data-lang="zh">伊朗</span><span class="ml" data-lang="ja">イラン</span><span class="ml" data-lang="fr">Iran</span><span class="ml" data-lang="de">Iran</span>
+                    &nbsp;·&nbsp;
+                    <span style="color:var(--accent);">&#9679;</span> <span class="ml" data-lang="ko">미국/이스라엘측</span><span class="ml" data-lang="en">US/Israel</span><span class="ml" data-lang="es">EE.UU./Israel</span><span class="ml" data-lang="zh">美国/以色列</span><span class="ml" data-lang="ja">米国/イスラエル</span><span class="ml" data-lang="fr">États-Unis/Israël</span><span class="ml" data-lang="de">USA/Israel</span>
+                    &nbsp;·&nbsp;
+                    <span style="color:var(--warning);">&#9679;</span> <span class="ml" data-lang="ko">기타</span><span class="ml" data-lang="en">Other</span><span class="ml" data-lang="es">Otros</span><span class="ml" data-lang="zh">其他</span><span class="ml" data-lang="ja">その他</span><span class="ml" data-lang="fr">Autres</span><span class="ml" data-lang="de">Sonstige</span>
+                </small>
+            </div>
+            <iframe id="mapFrame" src="/map"></iframe>
+        </div>
+        <div class="card">
+            <div class="card-header"><span>&#128202; <span class="ml" data-lang="ko">파이프라인 상태</span><span class="ml" data-lang="en">Pipeline Status</span><span class="ml" data-lang="es">Estado del pipeline</span><span class="ml" data-lang="zh">管道状态</span><span class="ml" data-lang="ja">パイプライン状態</span><span class="ml" data-lang="fr">État du pipeline</span><span class="ml" data-lang="de">Pipeline-Status</span></span></div>
+            <div class="card-body report-box">
+                <div class="status-line">
+                    <span id="statusDot" class="status-dot {{ report_status.state }}"></span>
+                    <strong id="reportState">{{ report_status.state }}</strong>
+                    &nbsp;—&nbsp;
+                    <span id="reportStep">{{ report_status.step }}</span>
+                </div>
+                <p id="reportMessage" style="color:var(--text-muted); margin-bottom:8px; font-size:12px;">{{ report_status.message }}</p>
+                <p style="font-size:10.5px; color:var(--text-dim);"><span class="ml" data-lang="ko">갱신</span><span class="ml" data-lang="en">Updated</span><span class="ml" data-lang="es">Actualizado</span><span class="ml" data-lang="zh">更新</span><span class="ml" data-lang="ja">更新</span><span class="ml" data-lang="fr">Mis à jour</span><span class="ml" data-lang="de">Aktualisiert</span>: <span id="reportUpdated">{{ report_status.updated_at }}</span></p>
+                <div class="section-label"><span class="ml" data-lang="ko">최근 결과</span><span class="ml" data-lang="en">Latest Result</span><span class="ml" data-lang="es">Último resultado</span><span class="ml" data-lang="zh">最近结果</span><span class="ml" data-lang="ja">最新結果</span><span class="ml" data-lang="fr">Dernier résultat</span><span class="ml" data-lang="de">Letztes Ergebnis</span></div>
+                <pre id="reportResult">{{ report_status.last_result | tojson(indent=2) if report_status.last_result else '아직 실행 결과가 없습니다.' }}</pre>
+                <div class="section-label"><span class="ml" data-lang="ko">이력</span><span class="ml" data-lang="en">History</span><span class="ml" data-lang="es">Historial</span><span class="ml" data-lang="zh">历史记录</span><span class="ml" data-lang="ja">履歴</span><span class="ml" data-lang="fr">Historique</span><span class="ml" data-lang="de">Verlauf</span></div>
+                <ul id="reportHistory" class="history-list">
+                    {% for h in report_status.history|reverse %}
+                    <li><strong>{{ h.time }}</strong> — {{ h.step }} / {{ h.message }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    {% if timeline %}
+    <div class="card timeline-card">
+        <div class="card-header">
+            <span>&#9201; <span class="ml" data-lang="ko">전쟁 타임라인 — 주요 이벤트</span><span class="ml" data-lang="en">War Timeline — Key Events</span><span class="ml" data-lang="es">Cronología — Eventos clave</span><span class="ml" data-lang="zh">战争时间线 — 重要事件</span><span class="ml" data-lang="ja">戦争タイムライン — 主要イベント</span><span class="ml" data-lang="fr">Chronologie — Événements clés</span><span class="ml" data-lang="de">Kriegszeitleiste — Schlüsselereignisse</span> <small>({{ timeline|length }})</small></span>
+            <small>
+                <span style="color:var(--danger);">&#9679;</span> <span class="ml" data-lang="ko">이란측</span><span class="ml" data-lang="en">Iran</span><span class="ml" data-lang="es">Irán</span><span class="ml" data-lang="zh">伊朗</span><span class="ml" data-lang="ja">イラン</span><span class="ml" data-lang="fr">Iran</span><span class="ml" data-lang="de">Iran</span>
+                &nbsp;
+                <span style="color:var(--accent);">&#9679;</span> <span class="ml" data-lang="ko">미국/이스라엘측</span><span class="ml" data-lang="en">US/Israel</span><span class="ml" data-lang="es">EE.UU./Israel</span><span class="ml" data-lang="zh">美国/以色列</span><span class="ml" data-lang="ja">米国/イスラエル</span><span class="ml" data-lang="fr">États-Unis/Israël</span><span class="ml" data-lang="de">USA/Israel</span>
+                &nbsp;
+                <span style="color:var(--warning);">&#9679;</span> <span class="ml" data-lang="ko">기타</span><span class="ml" data-lang="en">Other</span><span class="ml" data-lang="es">Otros</span><span class="ml" data-lang="zh">其他</span><span class="ml" data-lang="ja">その他</span><span class="ml" data-lang="fr">Autres</span><span class="ml" data-lang="de">Sonstige</span>
+            </small>
+        </div>
+        <div class="timeline-wrap">
+            <div class="timeline-track">
+                {% for ev in timeline %}
+                <div class="tl-event side-{{ ev.side }}" data-id="{{ ev.id }}" data-target-en="{{ ev.target_en }}" data-target-ko="{{ ev.target_ko }}" title="{{ ev.date_full }} · D+{{ ev.day_num }} · 클릭 시 표적 상세">
+                    <div class="tl-date">{{ ev.date_str }}<span class="tl-day">D+{{ ev.day_num }}</span></div>
+                    <div class="tl-dot"></div>
+                    <div class="tl-card">
+                        <div class="tl-actors">
+                            <span class="bi-ko">{{ ev.actor_ko }} &rarr; {{ ev.target_ko }}</span>
+                            <span class="bi-en" style="display:none;">{{ ev.actor_en }} &rarr; {{ ev.target_en }}</span>
+                        </div>
+                        <div class="tl-means">
+                            &#128295;
+                            <span class="bi-ko">{{ ev.means_ko }}</span>
+                            <span class="bi-en" style="display:none;">{{ ev.means_en }}</span>
+                        </div>
+                        <div class="tl-loc">
+                            &#128205;
+                            <span class="bi-ko">{{ ev.location_ko }}</span>
+                            <span class="bi-en" style="display:none;">{{ ev.location_en }}</span>
+                        </div>
+                        <div class="tl-damage">
+                            <span class="bi-ko">{{ ev.damage_ko }}</span>
+                            <span class="bi-en" style="display:none;">{{ ev.damage_en }}</span>
+                        </div>
+                        {% if ev.strategic_ko or ev.strategic_en %}
+                        <div class="tl-strat-label"><span class="ml" data-lang="ko">전략적 목적</span><span class="ml" data-lang="en">Strategic Purpose</span><span class="ml" data-lang="es">Propósito estratégico</span><span class="ml" data-lang="zh">战略目的</span><span class="ml" data-lang="ja">戦略的目的</span><span class="ml" data-lang="fr">Objectif stratégique</span><span class="ml" data-lang="de">Strategischer Zweck</span></div>
+                        <div class="tl-strat">
+                            <span class="bi-ko">{{ ev.strategic_ko }}</span>
+                            <span class="bi-en" style="display:none;">{{ ev.strategic_en }}</span>
+                        </div>
+                        {% endif %}
+                        {% if ev.tactical_ko or ev.tactical_en %}
+                        <div class="tl-tact">
+                            <span class="bi-ko">&#9881; {{ ev.tactical_ko }}</span>
+                            <span class="bi-en" style="display:none;">&#9881; {{ ev.tactical_en }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="timeline-hint">&larr; <span class="ml" data-lang="ko">좌우로 스크롤하여 전체 타임라인 보기</span><span class="ml" data-lang="en">Scroll to view full timeline</span><span class="ml" data-lang="es">Desplazar para ver la cronología completa</span><span class="ml" data-lang="zh">滚动查看完整时间线</span><span class="ml" data-lang="ja">スクロールして全タイムラインを表示</span><span class="ml" data-lang="fr">Faire défiler pour voir la chronologie</span><span class="ml" data-lang="de">Scrollen für die vollständige Zeitleiste</span> &rarr;</div>
+    </div>
+    {% endif %}
+
+    <!-- 전략적 분석은 타임라인 카드에 통합됨 -->
+
+    {% if not incidents %}
+    <div class="card">
+        <div class="empty-state">
+            <h3>&#128269; <span class="ml" data-lang="ko">데이터 없음</span><span class="ml" data-lang="en">No Data</span><span class="ml" data-lang="es">Sin datos</span><span class="ml" data-lang="zh">暂无数据</span><span class="ml" data-lang="ja">データなし</span><span class="ml" data-lang="fr">Aucune donnée</span><span class="ml" data-lang="de">Keine Daten</span></h3>
+            {% if public_mode %}
+            <p><span class="ml" data-lang="ko">수집된 사건이 없습니다. 데이터가 로드될 때까지 잠시만 기다려 주세요.</span><span class="ml" data-lang="en">No incidents collected yet. Please wait for data to load.</span><span class="ml" data-lang="es">No hay incidentes recopilados. Espere a que se carguen los datos.</span><span class="ml" data-lang="zh">暂无采集事件，请等待数据加载。</span><span class="ml" data-lang="ja">収集された事件がありません。データの読み込みをお待ちください。</span><span class="ml" data-lang="fr">Aucun incident collecté. Veuillez patienter.</span><span class="ml" data-lang="de">Keine Vorfälle gesammelt. Bitte warten Sie.</span></p>
+            {% else %}
+            <p><span class="ml" data-lang="ko">아직 수집된 사건이 없습니다. 아래 버튼을 클릭하세요.</span><span class="ml" data-lang="en">No incidents yet. Click the button below.</span><span class="ml" data-lang="es">Aún no hay incidentes. Haga clic en el botón de abajo.</span><span class="ml" data-lang="zh">暂无事件，请点击下方按钮。</span><span class="ml" data-lang="ja">まだ事件がありません。下のボタンをクリックしてください。</span><span class="ml" data-lang="fr">Aucun incident. Cliquez sur le bouton ci-dessous.</span><span class="ml" data-lang="de">Noch keine Vorfälle. Klicken Sie auf die Schaltfläche unten.</span></p>
+            <button class="btn seed" style="margin-top:14px;" onclick="runAction('/pipeline/seed')">&#9733; <span class="ml" data-lang="ko">검증 데이터 로드</span><span class="ml" data-lang="en">Load Seed Data</span><span class="ml" data-lang="es">Cargar datos de prueba</span><span class="ml" data-lang="zh">加载验证数据</span><span class="ml" data-lang="ja">検証データ読込</span><span class="ml" data-lang="fr">Charger données test</span><span class="ml" data-lang="de">Testdaten laden</span></button>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-header">
+            <span>&#128269; <span class="ml" data-lang="ko">사건 목록</span><span class="ml" data-lang="en">Incident List</span><span class="ml" data-lang="es">Lista de incidentes</span><span class="ml" data-lang="zh">事件列表</span><span class="ml" data-lang="ja">事件一覧</span><span class="ml" data-lang="fr">Liste des incidents</span><span class="ml" data-lang="de">Vorfallsliste</span> <small>({{ incidents|length }})</small></span>
+            <small><span style="color:var(--danger);">■</span> <span class="ml" data-lang="ko">빨간 좌측 = 이란/대리세력 · ⓘ 공격수단/표적 클릭 → 상세 설명</span><span class="ml" data-lang="en">Red left = Iran/proxies · ⓘ Click weapon/target → details</span><span class="ml" data-lang="es">Rojo izquierda = Irán · ⓘ Clic en arma/objetivo → detalles</span><span class="ml" data-lang="zh">红色左侧 = 伊朗 · ⓘ 点击武器/目标 → 详情</span><span class="ml" data-lang="ja">赤左 = イラン · ⓘ 武器/標的クリック → 詳細</span><span class="ml" data-lang="fr">Rouge gauche = Iran · ⓘ Cliquer arme/cible → détails</span><span class="ml" data-lang="de">Rot links = Iran · ⓘ Waffe/Ziel klicken → Details</span></small>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr>
+                    <th>ID</th>
+                    <th><span class="ml" data-lang="ko">일시</span><span class="ml" data-lang="en">Date</span><span class="ml" data-lang="es">Fecha</span><span class="ml" data-lang="zh">时间</span><span class="ml" data-lang="ja">日時</span><span class="ml" data-lang="fr">Date</span><span class="ml" data-lang="de">Datum</span></th>
+                    <th><span class="ml" data-lang="ko">행위자</span><span class="ml" data-lang="en">Actor</span><span class="ml" data-lang="es">Actor</span><span class="ml" data-lang="zh">行动方</span><span class="ml" data-lang="ja">行為者</span><span class="ml" data-lang="fr">Acteur</span><span class="ml" data-lang="de">Akteur</span></th>
+                    <th><span class="ml" data-lang="ko">대상</span><span class="ml" data-lang="en">Target</span><span class="ml" data-lang="es">Objetivo</span><span class="ml" data-lang="zh">目标</span><span class="ml" data-lang="ja">対象</span><span class="ml" data-lang="fr">Cible</span><span class="ml" data-lang="de">Ziel</span></th>
+                    <th><span class="ml" data-lang="ko">위치</span><span class="ml" data-lang="en">Location</span><span class="ml" data-lang="es">Ubicación</span><span class="ml" data-lang="zh">位置</span><span class="ml" data-lang="ja">位置</span><span class="ml" data-lang="fr">Lieu</span><span class="ml" data-lang="de">Ort</span></th>
+                    <th><span class="ml" data-lang="ko">좌표</span><span class="ml" data-lang="en">Coords</span><span class="ml" data-lang="es">Coord.</span><span class="ml" data-lang="zh">坐标</span><span class="ml" data-lang="ja">座標</span><span class="ml" data-lang="fr">Coord.</span><span class="ml" data-lang="de">Koord.</span></th>
+                    <th><span class="ml" data-lang="ko">공격수단</span><span class="ml" data-lang="en">Means</span><span class="ml" data-lang="es">Medios</span><span class="ml" data-lang="zh">攻击手段</span><span class="ml" data-lang="ja">攻撃手段</span><span class="ml" data-lang="fr">Moyens</span><span class="ml" data-lang="de">Mittel</span></th>
+                    <th><span class="ml" data-lang="ko">피해 요약</span><span class="ml" data-lang="en">Damage</span><span class="ml" data-lang="es">Daños</span><span class="ml" data-lang="zh">损害概述</span><span class="ml" data-lang="ja">被害概要</span><span class="ml" data-lang="fr">Dommages</span><span class="ml" data-lang="de">Schäden</span></th>
+                    <th><span class="ml" data-lang="ko">심각도</span><span class="ml" data-lang="en">Severity</span><span class="ml" data-lang="es">Gravedad</span><span class="ml" data-lang="zh">严重度</span><span class="ml" data-lang="ja">深刻度</span><span class="ml" data-lang="fr">Gravité</span><span class="ml" data-lang="de">Schwere</span></th>
+                    <th><span class="ml" data-lang="ko">신뢰도</span><span class="ml" data-lang="en">Conf.</span><span class="ml" data-lang="es">Conf.</span><span class="ml" data-lang="zh">可信度</span><span class="ml" data-lang="ja">信頼度</span><span class="ml" data-lang="fr">Conf.</span><span class="ml" data-lang="de">Konf.</span></th>
+                    <th><span class="ml" data-lang="ko">상태</span><span class="ml" data-lang="en">Status</span><span class="ml" data-lang="es">Estado</span><span class="ml" data-lang="zh">状态</span><span class="ml" data-lang="ja">状態</span><span class="ml" data-lang="fr">Statut</span><span class="ml" data-lang="de">Status</span></th>
+                </tr></thead>
+                <tbody>
+                {% for i in incidents %}
+                <tr class="{{ 'iran-actor' if i.is_iran_side else '' }} bi-row" data-lang="ko" title="행(비(非)용어 영역)을 클릭하면 해당 줄만 한/영 전환">
+                    <td>{{ i.id }}</td>
+                    <td style="font-size:10.5px; white-space:nowrap; color:var(--text-muted);">{{ i.pub_date or '-' }}</td>
+                    <td><strong class="{{ 'actor-iran' if i.is_iran_side else ('actor-us' if i.is_us_side else 'actor-other') }}">
+                        <span class="term actor bi-ko" data-term-ko="{{ i.actor or '' }}" data-term-en="{{ i.actor_en or '' }}">{{ i.actor or '-' }}</span><span class="term actor bi-en" style="display:none;" data-term-ko="{{ i.actor or '' }}" data-term-en="{{ i.actor_en or '' }}">{{ i.actor_en or '-' }}</span>
+                    </strong></td>
+                    <td style="font-size:12px;">
+                        <span class="term target bi-ko" data-term-ko="{{ i.target_actor or '' }}" data-term-en="{{ i.target_actor_en or '' }}">{{ i.target_actor or '-' }}</span><span class="term target bi-en" style="display:none;" data-term-ko="{{ i.target_actor or '' }}" data-term-en="{{ i.target_actor_en or '' }}">{{ i.target_actor_en or '-' }}</span>
+                    </td>
+                    <td>
+                        <span class="term target bi-ko" data-term-ko="{{ i.location_name or '' }}" data-term-en="{{ i.location_name_en or '' }}">{{ i.location_name or '-' }}</span><span class="term target bi-en" style="display:none;" data-term-ko="{{ i.location_name or '' }}" data-term-en="{{ i.location_name_en or '' }}">{{ i.location_name_en or '-' }}</span>
+                    </td>
+                    <td style="font-size:10.5px; color:var(--text-dim);">{% if i.latitude and i.longitude %}{{ '%.3f'|format(i.latitude) }}, {{ '%.3f'|format(i.longitude) }}{% else %}-{% endif %}</td>
+                    <td style="font-size:12px;">
+                        <span class="term weapon bi-ko" data-term-ko="{{ i.means or '' }}" data-term-en="{{ i.means_en or '' }}">{{ i.means or '-' }}</span><span class="term weapon bi-en" style="display:none;" data-term-ko="{{ i.means or '' }}" data-term-en="{{ i.means_en or '' }}">{{ i.means_en or '-' }}</span>
+                    </td>
+                    <td style="max-width:260px; font-size:12px;">
+                        <span class="bi-ko">{{ i.damage_summary or '-' }}</span><span class="bi-en" style="display:none;">{{ i.damage_summary_en or '-' }}</span>
+                    </td>
+                    <td>{% if i.damage_severity == '높음' %}<span class="severity-high">&#9650; <span class="ml" data-lang="ko">높음</span><span class="ml" data-lang="en">High</span><span class="ml" data-lang="es">Alto</span><span class="ml" data-lang="zh">高</span><span class="ml" data-lang="ja">高</span><span class="ml" data-lang="fr">Élevé</span><span class="ml" data-lang="de">Hoch</span></span>{% elif i.damage_severity == '중간' %}<span class="severity-medium">&#9644; <span class="ml" data-lang="ko">중간</span><span class="ml" data-lang="en">Med</span><span class="ml" data-lang="es">Medio</span><span class="ml" data-lang="zh">中</span><span class="ml" data-lang="ja">中</span><span class="ml" data-lang="fr">Moyen</span><span class="ml" data-lang="de">Mittel</span></span>{% else %}<span class="severity-low">&#9660; <span class="ml" data-lang="ko">낮음</span><span class="ml" data-lang="en">Low</span><span class="ml" data-lang="es">Bajo</span><span class="ml" data-lang="zh">低</span><span class="ml" data-lang="ja">低</span><span class="ml" data-lang="fr">Faible</span><span class="ml" data-lang="de">Niedrig</span></span>{% endif %}</td>
+                    <td>{{ '%.2f'|format(i.confidence) }}</td>
+                    <td><span class="pill {{ i.verified_status_raw }}">{{ i.verified_status }}</span></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ★ 피드백 위젯 -->
+    <div class="fb-section">
+        <div class="fb-card">
+            <div class="fb-title">
+                <span class="ml" data-lang="ko">의견 보내기</span>
+                <span class="ml" data-lang="en" style="display:none">Send Feedback</span>
+                <span class="ml" data-lang="es" style="display:none">Enviar comentarios</span>
+                <span class="ml" data-lang="zh" style="display:none">发送反馈</span>
+                <span class="ml" data-lang="ja" style="display:none">フィードバックを送る</span>
+                <span class="ml" data-lang="fr" style="display:none">Envoyer un avis</span>
+                <span class="ml" data-lang="de" style="display:none">Feedback senden</span>
+            </div>
+            <div class="fb-row">
+                <select class="fb-cat" id="fbCat" data-labels='{"general":{"ko":"일반 의견","en":"General","es":"General","zh":"一般意见","ja":"一般","fr":"Général","de":"Allgemein"},"translation":{"ko":"번역 오류","en":"Translation Error","es":"Error de traducción","zh":"翻译错误","ja":"翻訳エラー","fr":"Erreur de traduction","de":"Übersetzungsfehler"},"data_error":{"ko":"데이터 오류","en":"Data Error","es":"Error de datos","zh":"数据错误","ja":"データエラー","fr":"Erreur de données","de":"Datenfehler"},"feature_request":{"ko":"기능 요청","en":"Feature Request","es":"Solicitud","zh":"功能请求","ja":"機能要望","fr":"Demande","de":"Anfrage"}}'>
+                    <option value="general">일반 의견</option>
+                    <option value="translation">번역 오류</option>
+                    <option value="data_error">데이터 오류</option>
+                    <option value="feature_request">기능 요청</option>
+                </select>
+                <div class="fb-stars" id="fbStars">
+                    <button class="fb-star" data-v="1">★</button>
+                    <button class="fb-star" data-v="2">★</button>
+                    <button class="fb-star" data-v="3">★</button>
+                    <button class="fb-star" data-v="4">★</button>
+                    <button class="fb-star" data-v="5">★</button>
+                </div>
+            </div>
+            <textarea class="fb-msg" id="fbMsg" maxlength="1000" placeholder="건의사항이나 오류 내용을 자유롭게 작성해 주세요…" data-ph='{"ko":"건의사항이나 오류 내용을 자유롭게 작성해 주세요…","en":"Share your feedback or report an issue…","es":"Comparta sus comentarios o informe un error…","zh":"请自由填写建议或错误内容…","ja":"ご意見やエラー内容をご記入ください…","fr":"Partagez vos remarques ou signalez un problème…","de":"Teilen Sie Ihr Feedback oder melden Sie einen Fehler…"}'></textarea>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:10px;">
+                <button class="fb-submit" id="fbSend" onclick="submitFeedback()">
+                    <span class="ml" data-lang="ko">보내기</span>
+                    <span class="ml" data-lang="en" style="display:none">Submit</span>
+                    <span class="ml" data-lang="es" style="display:none">Enviar</span>
+                    <span class="ml" data-lang="zh" style="display:none">提交</span>
+                    <span class="ml" data-lang="ja" style="display:none">送信</span>
+                    <span class="ml" data-lang="fr" style="display:none">Envoyer</span>
+                    <span class="ml" data-lang="de" style="display:none">Senden</span>
+                </button>
+                <div class="fb-result" id="fbResult"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Glossary modal (shared) -->
+<div id="glossOverlay" class="gloss-overlay" onclick="closeGloss(event)">
+    <div class="gloss-modal" onclick="event.stopPropagation()">
+        <button class="gloss-close" onclick="closeGloss()" aria-label="닫기">✕</button>
+        <div id="glossBody">
+            <div class="gloss-loading">불러오는 중…</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 기본 상태 폴링
+function refreshMap(){ document.getElementById('mapFrame').src = '/map?ts=' + Date.now(); }
+async function fetchReport() {
+    try {
+        const res = await fetch('/report/status');
+        const data = await res.json();
+        document.getElementById('statusDot').className = 'status-dot ' + (data.state || 'idle');
+        document.getElementById('reportState').textContent = data.state || '-';
+        document.getElementById('reportStep').textContent = data.step || '-';
+        document.getElementById('reportMessage').textContent = data.message || '-';
+        document.getElementById('reportUpdated').textContent = data.updated_at || '-';
+        document.getElementById('reportResult').textContent = data.last_result ? JSON.stringify(data.last_result, null, 2) : '아직 실행 결과가 없습니다.';
+        const ul = document.getElementById('reportHistory');
+        ul.innerHTML = '';
+        (data.history || []).slice().reverse().forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${item.time}</strong> — ${item.step} / ${item.message}`;
+            ul.appendChild(li);
+        });
+        if (data.last_result && data.last_result.network_error) {
+            document.getElementById('networkBanner').classList.add('visible');
+        }
+    } catch(e) {}
+}
+async function runAction(path) {
+    try {
+        await fetchReport();
+        const res = await fetch(path, { method: 'POST' });
+        const data = await res.json();
+        await fetchReport();
+        document.getElementById('reportResult').textContent = JSON.stringify(data, null, 2);
+        fetchMetrics(); refreshMap();
+        setTimeout(() => location.reload(), 1500);
+    } catch (err) {
+        document.getElementById('reportMessage').textContent = '오류: ' + err;
+    }
+}
+async function fetchMetrics() {
+    try {
+        const res = await fetch('/status');
+        const data = await res.json();
+        document.getElementById('docsCount').textContent = data.documents ?? '-';
+        document.getElementById('incCount').textContent = data.incidents ?? '-';
+        document.getElementById('verifiedCount').textContent = data.verified_incidents ?? '-';
+        document.getElementById('mappableCount').textContent = (data.mappable_incidents || 0) + (data.fallback_mappable_incidents || 0);
+    } catch(e) {}
+}
+async function fetchDbSummary() {
+    try {
+        const r = await fetch('/api/db/summary');
+        const d = await r.json();
+        const span = document.getElementById('dbSummary');
+        if (!span) return;
+        if (d.last_ingest_at) {
+            const lastDate = new Date(d.last_ingest_at);
+            span.textContent = `· DB 저장 ${d.documents_saved}건 · 최종 수집 ${lastDate.toLocaleString('ko-KR')}`;
+        }
+    } catch(e) {}
+}
+fetchReport(); fetchMetrics(); fetchDbSummary();
+setInterval(fetchReport, 3000); setInterval(fetchMetrics, 5000);
+
+// 다국어 지원 (7개 언어)
+let globalLang = 'ko';
+const ALL_LANGS = ['ko','en','es','zh','ja','fr','de'];
+
+function applyLangToRow(row, lang) {
+    row.dataset.lang = lang;
+    const isKo = lang === 'ko';
+    row.querySelectorAll('.bi-ko').forEach(el => el.style.display = isKo ? '' : 'none');
+    row.querySelectorAll('.bi-en').forEach(el => el.style.display = isKo ? 'none' : '');
+}
+
+function applyGlobalLang(lang) {
+    globalLang = lang;
+    const isKo = lang === 'ko';
+
+    // 테이블 행
+    document.querySelectorAll('tr.bi-row').forEach(r => applyLangToRow(r, lang));
+
+    // 타임라인 + 전쟁 배너 (bi-ko / bi-en 기반 콘텐츠)
+    document.querySelectorAll('.timeline-track .bi-ko, .war-banner .bi-ko').forEach(el => el.style.display = isKo ? '' : 'none');
+    document.querySelectorAll('.timeline-track .bi-en, .war-banner .bi-en').forEach(el => el.style.display = isKo ? 'none' : '');
+
+    // 다국어 라벨 (.ml 스팬) — 반드시 'inline'으로 명시 (CSS 기본이 display:none이므로)
+    document.querySelectorAll('.ml').forEach(el => {
+        el.style.display = el.dataset.lang === lang ? 'inline' : 'none';
+    });
+
+    // 피드백 카테고리 select
+    const fbCat = document.getElementById('fbCat');
+    if (fbCat && fbCat.dataset.labels) {
+        try {
+            const labels = JSON.parse(fbCat.dataset.labels);
+            fbCat.querySelectorAll('option').forEach(opt => {
+                const map = labels[opt.value];
+                if (map) opt.textContent = map[lang] || map['en'] || opt.textContent;
+            });
+        } catch(e) {}
+    }
+
+    // 피드백 textarea placeholder
+    const fbMsg = document.getElementById('fbMsg');
+    if (fbMsg && fbMsg.dataset.ph) {
+        try {
+            const ph = JSON.parse(fbMsg.dataset.ph);
+            fbMsg.placeholder = ph[lang] || ph['en'] || fbMsg.placeholder;
+        } catch(e) {}
+    }
+
+    // 페이지 title 업데이트
+    const pageTitles = {ko:'OSINT 대시보드 — 2026 이란전쟁 모니터',en:'OSINT Dashboard — 2026 Iran War Monitor',es:'OSINT Dashboard — Monitor Guerra Irán 2026',zh:'OSINT仪表盘 — 2026伊朗战争监控',ja:'OSINTダッシュボード — 2026イラン戦争モニター',fr:'Tableau OSINT — Moniteur Guerre Iran 2026',de:'OSINT-Dashboard — 2026 Iran-Krieg Monitor'};
+    document.title = pageTitles[lang] || pageTitles['en'];
+
+    // 드롭다운 동기화
+    const sel = document.getElementById('langSelect');
+    if (sel && sel.value !== lang) sel.value = lang;
+}
+
+// 용어 사전 모달
+async function openGloss(term) {
+    if (!term || term === '-' || term.trim() === '') return;
+    const overlay = document.getElementById('glossOverlay');
+    const body = document.getElementById('glossBody');
+    body.innerHTML = '<div class="gloss-loading">🔍 불러오는 중…</div>';
+    overlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+    try {
+        const r = await fetch('/api/glossary?term=' + encodeURIComponent(term));
+        const d = await r.json();
+        const catLabel = {weapon:'공격수단', target:'표적/장소', actor:'행위자', unknown:'미등록 용어'}[d.category] || '용어';
+        const wikiKo = d.wiki_ko || '';
+        const wikiEn = d.wiki_en || '';
+        body.innerHTML = `
+            <span class="gloss-cat ${d.category}">${catLabel}</span>
+            <div class="gloss-name-ko">${escapeHtml(d.name_ko || '-')}</div>
+            <div class="gloss-name-en">${escapeHtml(d.name_en || '-')}</div>
+            <div class="gloss-desc">${escapeHtml(d.desc_ko || '')}</div>
+            <div class="gloss-links">
+                ${wikiKo ? `<a class="gloss-link" target="_blank" rel="noopener" href="${wikiKo}">🇰🇷 한국어 위키 &rarr;</a>` : ''}
+                ${wikiEn ? `<a class="gloss-link" target="_blank" rel="noopener" href="${wikiEn}">🇬🇧 English Wikipedia &rarr;</a>` : ''}
+            </div>
+            ${!d.found ? '<div style="margin-top:12px; font-size:11px; color:var(--text-dim); font-style:italic;">※ 내장 사전 미등록 — 위키피디아 검색 결과로 연결</div>' : ''}
+        `;
+    } catch (err) {
+        body.innerHTML = `<div class="gloss-loading" style="color:var(--danger);">정보 조회 실패: ${err}</div>`;
+    }
+}
+function closeGloss(e) {
+    if (e && e.target && e.target !== document.getElementById('glossOverlay') && !(e.target.classList && e.target.classList.contains('gloss-close'))) return;
+    document.getElementById('glossOverlay').classList.remove('visible');
+    document.body.style.overflow = '';
+}
+function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ── 피드백 ──
+let fbRating = 0;
+document.querySelectorAll('.fb-star').forEach(btn => {
+    btn.addEventListener('click', () => {
+        fbRating = parseInt(btn.dataset.v);
+        document.querySelectorAll('.fb-star').forEach(s => {
+            s.classList.toggle('active', parseInt(s.dataset.v) <= fbRating);
+        });
+    });
+});
+async function submitFeedback() {
+    const msg = document.getElementById('fbMsg').value.trim();
+    const cat = document.getElementById('fbCat').value;
+    const result = document.getElementById('fbResult');
+    const btn = document.getElementById('fbSend');
+    if (!msg || msg.length < 2) {
+        result.textContent = '내용을 입력해 주세요.';
+        result.className = 'fb-result error';
+        return;
+    }
+    btn.disabled = true;
+    result.textContent = '';
+    try {
+        const res = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ category: cat, message: msg, rating: fbRating || null })
+        });
+        const d = await res.json();
+        if (res.ok) {
+            result.textContent = d.message || '감사합니다!';
+            result.className = 'fb-result';
+            document.getElementById('fbMsg').value = '';
+            fbRating = 0;
+            document.querySelectorAll('.fb-star').forEach(s => s.classList.remove('active'));
+        } else {
+            throw new Error(d.detail || '전송 실패');
+        }
+    } catch (e) {
+        result.textContent = e.message;
+        result.className = 'fb-result error';
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// 이벤트 바인딩
+document.addEventListener('DOMContentLoaded', () => {
+    const langSel = document.getElementById('langSelect');
+    if (langSel) langSel.addEventListener('change', () => applyGlobalLang(langSel.value));
+
+    document.querySelectorAll('tr.bi-row').forEach(row => {
+        row.addEventListener('click', (e) => {
+            if (e.target.closest('a, .term, .gloss-overlay')) return;
+            const next = row.dataset.lang === 'ko' ? 'en' : 'ko';
+            applyLangToRow(row, next);
+        });
+    });
+
+    document.querySelectorAll('.term').forEach(el => {
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const en = el.dataset.termEn || '';
+            const ko = el.dataset.termKo || '';
+            const txt = el.textContent.trim();
+            const query = en && en !== '-' ? en : (ko && ko !== '-' ? ko : txt);
+            openGloss(query);
+        });
+    });
+
+    document.querySelectorAll('.tl-event').forEach(el => {
+        el.addEventListener('click', () => {
+            // 타임라인 카드는 표적을 우선 조회
+            const en = el.dataset.targetEn || '';
+            const ko = el.dataset.targetKo || '';
+            const query = en && en !== '-' ? en : ko;
+            if (query) openGloss(query);
+        });
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeGloss({target: document.getElementById('glossOverlay')});
+    });
+});
+</script>
+</body>
+</html>
