@@ -1474,6 +1474,17 @@
             </div>
         </div>
     </div>
+
+    <!-- Credit -->
+    <div style="text-align:center; padding:14px 0 10px; margin-top:28px; border-top:1px solid var(--border); font-size:9px; color:var(--text-dim); line-height:1.8; opacity:0.75;">
+        <span class="ml" data-lang="ko">본 시스템은 순수 학술 연구 목적으로 개발되었습니다.</span><span class="ml" data-lang="en">This system was developed solely for academic research purposes.</span><br>
+        <span style="letter-spacing:0.2px;">
+            <span class="ml" data-lang="ko">설계 및 개발: 김종환 박사 (Dr. Jong-Hwan Kim)</span><span class="ml" data-lang="en">Designed & Developed by Dr. Jong-Hwan Kim</span>
+            <span style="margin:0 3px; opacity:0.4;">|</span>
+            <a href="mailto:jonghwan7028@gmail.com" style="color:var(--text-dim); text-decoration:none; border-bottom:1px dotted var(--text-dim);">jonghwan7028@gmail.com</a>
+            <span style="margin:0 3px; opacity:0.4;">|</span> 2026
+        </span>
+    </div>
 </main>
 
 <!-- Compare Button (floating) -->
@@ -1903,12 +1914,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-    // 지도에서 클릭 → 목록 스크롤
+    // 지도에서 클릭 → 목록 스크롤 (모바일에서는 스크롤 이동 생략 — 지도와 목록이 세로로 멀리 떨어져 있어 혼란 유발)
     window.addEventListener('message', (e) => {
         if (e.data && e.data.type === 'focusRow') {
             const row = document.querySelector(`tr[data-inc-id="${e.data.id}"]`);
             if (row) {
-                row.scrollIntoView({behavior:'smooth', block:'center'});
+                const isMobile = window.innerWidth <= 768;
+                if (!isMobile) {
+                    row.scrollIntoView({behavior:'smooth', block:'center'});
+                }
                 row.querySelectorAll('td').forEach(td => td.classList.add('row-highlight'));
                 setTimeout(() => row.querySelectorAll('td').forEach(td => td.classList.remove('row-highlight')), 1500);
             }
