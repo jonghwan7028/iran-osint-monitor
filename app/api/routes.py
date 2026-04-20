@@ -605,22 +605,73 @@ class FeedbackIn(BaseModel):
     rating: int | None = Field(None, ge=1, le=5)
 
 @router.post("/api/feedback")
-def submit_feedback(body: FeedbackIn, db: Session = Depends(get_db)):
+def submit_feedback(body: FeedbackIn, request: Request, db: Session = Depends(get_db)):
+    import hashlib
     from app.models.entities import Feedback
-    fb = Feedback(category=body.category, message=body.message, rating=body.rating)
+    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
+    ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16]
+    fb = Feedback(category=body.category, message=body.message, rating=body.rating, ip_hash=ip_hash)
     db.add(fb)
     db.commit()
-    return {"status": "ok", "message": "피드백이 등록되었습니다. 감사합니다!"}
+    return {"status": "ok", "message": "Thank you for your feedback!"}
 
 @router.get("/api/feedback")
 def list_feedback(db: Session = Depends(get_db)):
+    """피드백 전체 목록 (최근 200건)."""
     from app.models.entities import Feedback
-    rows = db.query(Feedback).order_by(Feedback.created_at.desc()).limit(50).all()
+    rows = db.query(Feedback).order_by(Feedback.created_at.desc()).limit(200).all()
     return [
         {"id": r.id, "category": r.category, "message": r.message,
-         "rating": r.rating, "created_at": r.created_at.isoformat() if r.created_at else None}
+         "rating": r.rating, "ip_hash": r.ip_hash,
+         "created_at": r.created_at.isoformat() if r.created_at else None}
         for r in rows
     ]
+
+@router.get("/api/feedback/summary")
+def feedback_summary(db: Session = Depends(get_db)):
+    """피드백 통계 요약 — 관리자용."""
+    from sqlalchemy import func
+    from app.models.entities import Feedback
+    total = db.query(Feedback).count()
+    by_cat = dict(db.query(Feedback.category, func.count()).group_by(Feedback.category).all())
+    avg_rating = db.query(func.avg(Feedback.rating)).filter(Feedback.rating.isnot(None)).scalar()
+    return {
+        "total": total,
+        "by_category": by_cat,
+        "average_rating": round(float(avg_rating), 1) if avg_rating else None,
+    }
+
+
+# ── 방문자 카운터 (초기값 12,457) ──
+_VISITOR_BASE = 12457
+
+@router.post("/api/pageview")
+def record_pageview(request: Request, db: Session = Depends(get_db)):
+    """페이지 방문 기록 (프론트에서 페이지 로드 시 호출)."""
+    import hashlib
+    from datetime import datetime as _dt
+    from app.models.entities import PageView
+    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
+    ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16]
+    ua = request.headers.get("user-agent", "")[:500]
+    pv = PageView(ip_hash=ip_hash, user_agent=ua)
+    db.add(pv)
+    db.commit()
+    total = db.query(PageView).count() + _VISITOR_BASE
+    today_start = _dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today = db.query(PageView).filter(PageView.visited_at >= today_start).count()
+    return {"total": total, "today": today}
+
+
+@router.get("/api/pageview")
+def get_pageview_stats(db: Session = Depends(get_db)):
+    """방문 통계 조회."""
+    from datetime import datetime as _dt
+    from app.models.entities import PageView
+    total = db.query(PageView).count() + _VISITOR_BASE
+    today_start = _dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today = db.query(PageView).filter(PageView.visited_at >= today_start).count()
+    return {"total": total, "today": today}
 
 
 @router.post("/pipeline/seed")

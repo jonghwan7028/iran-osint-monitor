@@ -1475,7 +1475,7 @@
         </div>
     </div>
 
-    <!-- Credit -->
+    <!-- Credit + Visitor Counter -->
     <div style="text-align:center; padding:14px 0 10px; margin-top:28px; border-top:1px solid var(--border); font-size:9px; color:var(--text-dim); line-height:1.8; opacity:0.75;">
         <span class="ml" data-lang="ko">본 시스템은 순수 학술 연구 목적으로 개발되었습니다.</span><span class="ml" data-lang="en">This system was developed solely for academic research purposes.</span><br>
         <span style="letter-spacing:0.2px;">
@@ -1483,6 +1483,14 @@
             <span style="margin:0 3px; opacity:0.4;">|</span>
             <a href="mailto:jonghwan7028@gmail.com" style="color:var(--text-dim); text-decoration:none; border-bottom:1px dotted var(--text-dim);">jonghwan7028@gmail.com</a>
             <span style="margin:0 3px; opacity:0.4;">|</span> 2026
+        </span>
+        <br>
+        <span id="visitorCounter" style="font-size:8px; opacity:0.6;">
+            👁 <span class="ml" data-lang="ko">오늘</span><span class="ml" data-lang="en">Today</span>
+            <span id="todayVisitors">-</span>
+            <span style="margin:0 3px;">·</span>
+            <span class="ml" data-lang="ko">전체</span><span class="ml" data-lang="en">Total</span>
+            <span id="totalVisitors">-</span>
         </span>
     </div>
 </main>
@@ -2033,6 +2041,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 초기 상대 시간 표시
     updateRelativeTimes();
+
+    // 방문자 기록 및 카운터 표시
+    fetch('/api/pageview', {method:'POST'})
+        .then(r => r.json())
+        .then(d => {
+            const el = (id) => document.getElementById(id);
+            if (el('totalVisitors')) el('totalVisitors').textContent = (d.total || 0).toLocaleString();
+            if (el('todayVisitors')) el('todayVisitors').textContent = (d.today || 0).toLocaleString();
+        })
+        .catch(() => {});
 });
 </script>
 </body>

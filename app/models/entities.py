@@ -50,6 +50,16 @@ class Incident(Base):
     document: Mapped[SourceDocument] = relationship(back_populates="incidents")
 
 
+class PageView(Base):
+    """페이지 방문 기록."""
+    __tablename__ = "page_views"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    visited_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    ip_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # 익명화된 IP
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+
 class Feedback(Base):
     """사용자 피드백 / 건의사항."""
     __tablename__ = "feedbacks"
@@ -58,4 +68,5 @@ class Feedback(Base):
     category: Mapped[str] = mapped_column(String(50), default="general")  # general, translation, data_error, feature_request
     message: Mapped[str] = mapped_column(Text, nullable=False)
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 1-5
+    ip_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # 익명화된 IP
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
