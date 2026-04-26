@@ -175,4 +175,24 @@ SENTENCE_KO: dict[str, str] = {
     "Hormuz reopens; oil prices fall 8% to $118/bbl; first offensive pause since Feb 28": "호르무즈 재개항; 유가 8% 하락해 배럴당 118달러; 2월 28일 이후 첫 공격 중단",
     "Short pause allows both sides to rearm reconstitute and evaluate ceasefire framework.": "단기 중단이 양측이 재무장, 재정비하고 휴전 체계를 평가할 수 있게 함.",
     "First concrete de-escalation of the war; could become foundation for permanent ceasefire or collapse if any party breaks pause.": "전쟁의 첫 구체적 완화; 어떤 당사자가 휴전을 위반하면 항구적 휴전의 토대가 되거나 붕괴될 수 있음.",
+
+    # Event 34: Israeli strikes in southern Lebanon (April 25, 2026)
+    "6 killed, 17 injured in southern Lebanon strikes; Hezbollah downed one Israeli drone in retaliation; ceasefire violations cited by Lebanese Health Ministry": "남부 레바논 공습으로 6명 사망, 17명 부상; 헤즈볼라가 보복으로 이스라엘 무인기 1대 격추; 레바논 보건부가 휴전 위반 지적",
+    "Targeted vehicles assessed by IDF as weapons-laden; Hezbollah retaliation localized to Israeli army vehicles in south Lebanon.": "IDF는 표적 차량을 무기 적재 차량으로 평가; 헤즈볼라의 보복은 남부 레바논 내 이스라엘군 차량으로 한정됨.",
+    "Repeated strikes during the extended ceasefire test the durability of the April 17 truce and signal Israel's policy of acting against perceived imminent threats irrespective of pause terms.": "연장된 휴전 기간 중 반복된 공습이 4월 17일 휴전의 지속성을 시험하며, 이스라엘이 휴전 조건과 무관하게 임박한 위협으로 판단되는 표적에 대해 행동한다는 정책을 시사함.",
+
+    # Event 35: Trump cancels Pakistan envoy trip (April 25, 2026)
+    "Witkoff-Kushner Pakistan trip canceled; Iranian FM Araghchi had already left Islamabad; talks downgraded to telephone-only; ceasefire and US naval blockade continue": "위트코프·쿠슈너 특사의 파키스탄 방문 취소; 이란 외무장관 아락치는 이미 이슬라마바드 출국; 협상은 전화 통화로 축소; 휴전과 미 해상 봉쇄는 계속",
+    "Last-minute cancellation reflects breakdown of in-person diplomatic format after Iranian side declined direct meeting; both governments shift to phone-based exchanges.": "막판 취소는 이란 측이 직접 회담을 거부한 이후 대면 외교 형식의 붕괴를 반영하며, 양국 정부 모두 전화 기반 교환으로 전환.",
+    "Stalled negotiations sustain pressure-track diplomacy alongside the US naval blockade; raises risk of ceasefire collapse if no diplomatic breakthrough emerges in coming days.": "교착된 협상은 미 해상 봉쇄와 병행되는 압박 외교 기조를 유지시키며, 향후 며칠 내 외교적 돌파구가 나오지 않으면 휴전 붕괴 위험을 높임.",
+
+    # Event 36: Araghchi departs to Oman (April 25, 2026)
+    "Araghchi exits Islamabad after Pakistani round; arrives in Muscat for continued mediated regional talks; conditional on US diplomatic seriousness": "아락치, 파키스탄 회담 후 이슬라마바드 출국; 무스카트 도착해 중재 회담 계속; 미국의 외교적 진정성 여부에 조건부",
+    "Iran consolidates around the Omani mediation channel after the Pakistani round failed to produce direct US contact.": "파키스탄 회담이 미국과의 직접 접촉을 만들어내지 못하자, 이란은 오만 중재 채널을 중심으로 외교 노선을 정비함.",
+    "Reinforces Oman's role as the durable back-channel established earlier in the war; preserves diplomatic optionality without conceding to US pressure on the blockade.": "전쟁 초반에 자리잡은 오만의 비밀 외교 채널 역할을 강화; 봉쇄에 대한 미국의 압박에 굴복하지 않으면서 외교적 선택지를 보존.",
+
+    # Event 37: US Navy intercepts M/V Sevan tanker (April 25, 2026)
+    "M/V Sevan intercepted and redirected toward Iran; cumulative blockade redirects since April 13 reach 37 ships; three vessels previously seized for non-compliance": "M/V 세반호 차단 후 이란 방향으로 회항 조치; 4월 13일 봉쇄 개시 이후 누적 회항 조치 선박 37척 도달; 미준수 선박 3척은 사전 나포됨",
+    "Successful interception of a newly sanctioned tanker demonstrates intelligence-driven blockade enforcement; non-kinetic redirect remained the standard outcome.": "새로 제재된 유조선의 성공적 차단은 정보 기반 봉쇄 집행 능력을 보여주며, 비물리적 회항 조치가 표준 결과로 유지됨.",
+    "Sustained US naval blockade is the principal coercive instrument keeping Iran's oil exports near zero; Iran cites the blockade as a ceasefire violation while diplomatic channels remain open via Oman.": "지속되는 미 해상 봉쇄는 이란 원유 수출을 0에 가깝게 묶어두는 핵심 강압 수단이며, 이란은 봉쇄를 휴전 위반으로 규정하는 한편 오만 채널을 통한 외교 통로는 열어둠.",
 }
