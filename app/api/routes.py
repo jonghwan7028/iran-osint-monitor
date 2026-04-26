@@ -39,6 +39,12 @@ from app.services.ko_translate import (
     translate_sentence, translate_verified_status,
 )
 from app.services.glossary import lookup as glossary_lookup
+from app.services.translator_v2 import translate_sentence_better
+from app.services.tone_softener import (
+    soften_english, soften_korean,
+    short_cell_korean, short_cell_english, has_high_casualty_signal,
+)
+from app.services import multilang as ml
 import re as _re
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -166,23 +172,50 @@ def _format_incident(inc, doc):
         pub_date = doc.published_at.strftime("%Y-%m-%d %H:%M")
     elif inc.created_at:
         pub_date = inc.created_at.strftime("%Y-%m-%d %H:%M")
+
+    # ── 한국어/영어 본문(피해요약) ──
+    # 한국어: 사전 우선 → 패턴 번역 → 어휘 강화 → 톤 정제
+    damage_ko_raw = translate_sentence_better(inc.damage_summary)
+    damage_ko_full = soften_korean(damage_ko_raw)
+    # 영어: 톤 정제만
+    damage_en_full = soften_english(inc.damage_summary or "-")
+    # 표 셀에는 짧은 정제 버전을 표시(원문은 마우스오버·팝업·브리핑에서)
+    damage_ko_cell = short_cell_korean(damage_ko_full, max_len=80)
+    damage_en_cell = short_cell_english(damage_en_full, max_len=90)
+
+    # ── 한국어 다국어 보조 데이터 ──
+    actor_ko = translate_actor(actor)
+    actor_en = actor or "Unknown"
+    target_ko = translate_actor(inc.target_actor)
+    target_en = inc.target_actor or "-"
+    loc_ko = translate_location(inc.location_name)
+    loc_en = inc.location_name or "-"
+    means_ko = translate_means(inc.means)
+    means_en = inc.means or "-"
+    severity_ko = classify_damage_severity(inc.damage_summary)
+
     return {
         "id": inc.id,
         "pub_date": pub_date,
         # 기본 표시는 한국어, 영어 원본은 *_en 필드로 유지 (클릭 시 토글에 사용)
-        "actor": translate_actor(actor),
-        "actor_en": actor or "Unknown",
-        "target_actor": translate_actor(inc.target_actor),
-        "target_actor_en": inc.target_actor or "-",
-        "location_name": translate_location(inc.location_name),
-        "location_name_en": inc.location_name or "-",
+        "actor": actor_ko,
+        "actor_en": actor_en,
+        "target_actor": target_ko,
+        "target_actor_en": target_en,
+        "location_name": loc_ko,
+        "location_name_en": loc_en,
         "latitude": inc.latitude,
         "longitude": inc.longitude,
-        "means": translate_means(inc.means),
-        "means_en": inc.means or "-",
-        "damage_summary": translate_sentence(inc.damage_summary),
-        "damage_summary_en": inc.damage_summary or "-",
-        "damage_severity": classify_damage_severity(inc.damage_summary),
+        "means": means_ko,
+        "means_en": means_en,
+        # 표 셀용(정제·축약)
+        "damage_summary": damage_ko_cell,
+        "damage_summary_en": damage_en_cell,
+        # 팝업·브리핑용(정제 풀버전)
+        "damage_summary_full_ko": damage_ko_full,
+        "damage_summary_full_en": damage_en_full,
+        "damage_severity": severity_ko,
+        "high_casualty": has_high_casualty_signal(inc.damage_summary),
         "confidence": inc.confidence,
         "verified_status": translate_verified_status(inc.verified_status),
         "verified_status_5level": inc.verified_status,
@@ -195,6 +228,35 @@ def _format_incident(inc, doc):
         "source_published_at": doc.published_at.isoformat() if doc and doc.published_at else None,
         "source_title": doc.title if doc else "미상",
         "source_type": _classify_source_type(doc.publisher if doc else ""),
+        # ── 다국어 (es/zh/ja/fr/de) — 기존 ko/en 외 ──
+        "actor_ml": {
+            lang: ml.actor_in(lang, actor) for lang in ml.ALL_LANGS
+        },
+        "target_actor_ml": {
+            lang: ml.actor_in(lang, inc.target_actor) for lang in ml.ALL_LANGS
+        },
+        "location_ml": {
+            lang: ml.location_in(lang, inc.location_name) for lang in ml.ALL_LANGS
+        },
+        "means_ml": {
+            lang: ml.means_in(lang, inc.means) for lang in ml.ALL_LANGS
+        },
+        "status_ml": {
+            lang: ml.status_in(lang, inc.verified_status) for lang in ml.ALL_LANGS
+        },
+        "severity_ml": {
+            lang: ml.severity_in(lang, severity_ko) for lang in ml.ALL_LANGS
+        },
+        # 피해요약 다국어 — ko/en 은 위에서 만든 값 사용, 나머지는 기본 영어 + 키워드 치환
+        "damage_ml_cell": {
+            "ko": damage_ko_cell,
+            "en": damage_en_cell,
+            "es": short_cell_english(ml.summary_in("es", damage_en_full), 90),
+            "zh": short_cell_english(ml.summary_in("zh", damage_en_full), 80),
+            "ja": short_cell_english(ml.summary_in("ja", damage_en_full), 80),
+            "fr": short_cell_english(ml.summary_in("fr", damage_en_full), 90),
+            "de": short_cell_english(ml.summary_in("de", damage_en_full), 90),
+        },
     }
 
 
@@ -232,8 +294,8 @@ def _build_war_status(incident_pairs) -> dict:
             "target_en": inc.target_actor or "-",
             "location_ko": translate_location(inc.location_name) if inc.location_name else "-",
             "location_en": inc.location_name or "-",
-            "damage_ko": translate_sentence(inc.damage_summary) if inc.damage_summary else "-",
-            "damage_en": inc.damage_summary or "-",
+            "damage_ko": short_cell_korean(soften_korean(translate_sentence_better(inc.damage_summary)), 90) if inc.damage_summary else "-",
+            "damage_en": short_cell_english(soften_english(inc.damage_summary or "-"), 100),
             "date_str": latest_t.strftime("%Y-%m-%d %H:%M") if latest_t else "-",
             "means_ko": translate_means(inc.means) if inc.means else "-",
             "means_en": inc.means or "-",
@@ -269,8 +331,8 @@ def _build_strategic_analysis(incident_pairs) -> dict:
             t = t.replace(tzinfo=_tz.utc)
 
         # 전략 평가를 한국어로 번역
-        strat_ko = translate_sentence(inc.strategic_assessment) if inc.strategic_assessment else "-"
-        tact_ko = translate_sentence(inc.tactical_assessment) if inc.tactical_assessment else "-"
+        strat_ko = soften_korean(translate_sentence_better(inc.strategic_assessment)) if inc.strategic_assessment else "-"
+        tact_ko = soften_korean(translate_sentence_better(inc.tactical_assessment)) if inc.tactical_assessment else "-"
 
         entry = {
             "id": inc.id,
@@ -284,12 +346,12 @@ def _build_strategic_analysis(incident_pairs) -> dict:
             "location_en": inc.location_name or "-",
             "means_ko": translate_means(inc.means) if inc.means else "-",
             "means_en": inc.means or "-",
-            "damage_ko": translate_sentence(inc.damage_summary) if inc.damage_summary else "-",
-            "damage_en": inc.damage_summary or "-",
+            "damage_ko": short_cell_korean(soften_korean(translate_sentence_better(inc.damage_summary)), 100) if inc.damage_summary else "-",
+            "damage_en": short_cell_english(soften_english(inc.damage_summary or "-"), 110),
             "strategic_ko": strat_ko,
-            "strategic_en": inc.strategic_assessment or "-",
+            "strategic_en": soften_english(inc.strategic_assessment or "-"),
             "tactical_ko": tact_ko,
-            "tactical_en": inc.tactical_assessment or "-",
+            "tactical_en": soften_english(inc.tactical_assessment or "-"),
             "confidence": inc.confidence,
             "_sort": t,
         }
@@ -337,16 +399,11 @@ def _build_timeline(incident_pairs) -> list[dict]:
         side = get_actor_side(inc.actor or "")
         actor_ko = translate_actor(inc.actor)
         target_ko = translate_actor(inc.target_actor) if inc.target_actor else "-"
-        damage_ko = translate_sentence(inc.damage_summary) if inc.damage_summary else "-"
-        # 타임라인 카드는 매우 간결해야 하므로 80자로 컷
-        if len(damage_ko) > 90:
-            damage_ko = damage_ko[:90] + "…"
-        damage_en = (inc.damage_summary or "-")
-        if len(damage_en) > 90:
-            damage_en = damage_en[:90] + "…"
+        damage_ko = short_cell_korean(soften_korean(translate_sentence_better(inc.damage_summary)), 90) if inc.damage_summary else "-"
+        damage_en = short_cell_english(soften_english(inc.damage_summary or "-"), 100)
         # 전략/전술 평가
-        strat_ko = translate_sentence(inc.strategic_assessment) if inc.strategic_assessment else ""
-        tact_ko = translate_sentence(inc.tactical_assessment) if inc.tactical_assessment else ""
+        strat_ko = soften_korean(translate_sentence_better(inc.strategic_assessment)) if inc.strategic_assessment else ""
+        tact_ko = soften_korean(translate_sentence_better(inc.tactical_assessment)) if inc.tactical_assessment else ""
         means_ko = translate_means(inc.means) if inc.means else "-"
         timeline.append({
             "id": inc.id,
@@ -365,9 +422,9 @@ def _build_timeline(incident_pairs) -> list[dict]:
             "means_ko": means_ko,
             "means_en": inc.means or "-",
             "strategic_ko": strat_ko,
-            "strategic_en": inc.strategic_assessment or "",
+            "strategic_en": soften_english(inc.strategic_assessment or ""),
             "tactical_ko": tact_ko,
-            "tactical_en": inc.tactical_assessment or "",
+            "tactical_en": soften_english(inc.tactical_assessment or ""),
             "latitude": inc.latitude,
             "longitude": inc.longitude,
         })

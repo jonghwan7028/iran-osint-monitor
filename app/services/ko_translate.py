@@ -643,6 +643,18 @@ def translate_title(title: str | None) -> str:
 
 def build_bilingual_incident(inc: Any, doc: Any, actor_side: str) -> dict[str, Any]:
     """지도 팝업·대시보드에서 바로 쓸 수 있는 KO/EN 이중 dict 반환."""
+    # 새 모듈을 사용해 자연스러운 한국어 번역과 톤 정제 적용
+    try:
+        from app.services.translator_v2 import translate_sentence_better
+        from app.services.tone_softener import soften_korean, soften_english
+        _better = translate_sentence_better
+        _soften_ko = soften_korean
+        _soften_en = soften_english
+    except Exception:
+        _better = translate_sentence
+        _soften_ko = lambda s: s or ""
+        _soften_en = lambda s: s or ""
+
     pub_date = ""
     if doc and getattr(doc, "published_at", None):
         pub_date = doc.published_at.strftime("%Y-%m-%d %H:%M UTC")
@@ -666,7 +678,7 @@ def build_bilingual_incident(inc: Any, doc: Any, actor_side: str) -> dict[str, A
         "pub_date": pub_date,
         "side_label_ko": side_label_ko,
         "side_label_en": side_label_en,
-        # 영문 원본
+        # 영문 원본 — 톤 정제만 적용
         "en": {
             "title": doc.title if doc else "",
             "publisher": doc.publisher if doc else "",
@@ -677,14 +689,14 @@ def build_bilingual_incident(inc: Any, doc: Any, actor_side: str) -> dict[str, A
             "event_type": inc.event_type or "-",
             "means": inc.means or "-",
             "target_type": inc.target_type or "-",
-            "damage_summary": inc.damage_summary or "-",
-            "tactical_assessment": inc.tactical_assessment or "-",
-            "strategic_assessment": inc.strategic_assessment or "-",
+            "damage_summary": _soften_en(inc.damage_summary or "-"),
+            "tactical_assessment": _soften_en(inc.tactical_assessment or "-"),
+            "strategic_assessment": _soften_en(inc.strategic_assessment or "-"),
             "verified_status": inc.verified_status or "-",
         },
-        # 한국어 번역
+        # 한국어 번역 — 향상된 번역 + 톤 정제
         "ko": {
-            "title": translate_title(doc.title) if doc else "",
+            "title": _better(doc.title) if doc else "",
             "publisher": doc.publisher if doc else "",
             "url": doc.url if doc else "#",
             "actor": translate_actor(inc.actor),
@@ -693,9 +705,9 @@ def build_bilingual_incident(inc: Any, doc: Any, actor_side: str) -> dict[str, A
             "event_type": translate_event_type(inc.event_type),
             "means": translate_means(inc.means),
             "target_type": translate_target_type(inc.target_type),
-            "damage_summary": translate_sentence(inc.damage_summary),
-            "tactical_assessment": translate_sentence(inc.tactical_assessment),
-            "strategic_assessment": translate_sentence(inc.strategic_assessment),
+            "damage_summary": _soften_ko(_better(inc.damage_summary)),
+            "tactical_assessment": _soften_ko(_better(inc.tactical_assessment)),
+            "strategic_assessment": _soften_ko(_better(inc.strategic_assessment)),
             "verified_status": translate_verified_status(inc.verified_status),
         },
         "latitude": inc.latitude,

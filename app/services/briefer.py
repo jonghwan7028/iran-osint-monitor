@@ -19,6 +19,8 @@ from app.services.ko_translate import (
     translate_actor, translate_means, translate_location,
     translate_sentence, translate_title,
 )
+from app.services.translator_v2 import translate_sentence_better
+from app.services.tone_softener import soften_korean, soften_english
 
 
 def _esc(s: str | None) -> str:
@@ -320,12 +322,12 @@ class BriefingService:
             loc_e = _esc(inc.location_name or "-")
             means_k = _esc(translate_means(inc.means))
             means_e = _esc(inc.means or "-")
-            damage_k = _esc(translate_sentence(inc.damage_summary))
-            damage_e = _esc(inc.damage_summary or "-")
-            tact_k = _esc(translate_sentence(inc.tactical_assessment))
-            tact_e = _esc(inc.tactical_assessment or "-")
-            strat_k = _esc(translate_sentence(inc.strategic_assessment))
-            strat_e = _esc(inc.strategic_assessment or "-")
+            damage_k = _esc(soften_korean(translate_sentence_better(inc.damage_summary)))
+            damage_e = _esc(soften_english(inc.damage_summary or "-"))
+            tact_k = _esc(soften_korean(translate_sentence_better(inc.tactical_assessment)))
+            tact_e = _esc(soften_english(inc.tactical_assessment or "-"))
+            strat_k = _esc(soften_korean(translate_sentence_better(inc.strategic_assessment)))
+            strat_e = _esc(soften_english(inc.strategic_assessment or "-"))
             sev = classify_damage_severity(inc.damage_summary)
             url = _esc(doc.url if doc else "#")
             pub = _esc(doc.publisher if doc else "-")
