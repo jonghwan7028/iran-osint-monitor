@@ -19,8 +19,6 @@ ACTOR_KO: dict[str, str] = {
     "us / israel": "미국/이스라엘",
     "israel": "이스라엘",
     "idf": "이스라엘방위군(IDF)",
-    "hezbollah (iran proxy)": "헤즈볼라(이란 대리세력)",
-    "united states (centcom)": "미국(중부사령부)",
     "centcom": "미 중부사령부(CENTCOM)",
     "iran": "이란",
     "irgc": "이란 혁명수비대(IRGC)",
@@ -113,10 +111,6 @@ MEANS_KO: dict[str, str] = {
     "anti-ship ballistic missiles, suicide drones": "대함 탄도미사일·자살 무인기",
     "ground-to-air missiles": "공대지 미사일",
     "air-to-ground missiles": "지대공 미사일",
-    "diplomatic cancellation": "외교적 취소",
-    "diplomatic travel; mediated channel": "외교 방문·중재 채널",
-    "naval interception; sanctions enforcement": "해상 차단·제재 집행",
-    "airstrikes (truck, motorbike); artillery shelling": "공습(차량·오토바이)·포격",
 }
 
 TARGET_TYPE_KO: dict[str, str] = {
@@ -229,18 +223,6 @@ LOCATION_KO: dict[str, str] = {
     "muscat, oman": "무스카트, 오만",
     "bandar abbas, hormozgan, iran": "반다르아바스, 호르무즈간주, 이란",
     "washington dc / tehran": "워싱턴 DC / 테헤란",
-    "yohmor al-shaqeef / safad al-battikh, southern lebanon": "요흐모르 알샤키프 / 사파드 알바티흐, 남부 레바논",
-    "islamabad, pakistan / washington dc": "이슬라마바드 / 워싱턴 DC",
-    "islamabad → muscat, oman": "이슬라마바드 → 무스카트, 오만",
-    "arabian sea (en route to iran)": "아라비아해 (이란 항행 중)",
-    "yohmor al-shaqeef": "요흐모르 알샤키프",
-    "safad al-battikh": "사파드 알바티흐",
-    "nabatieh": "나바티예",
-    "bint jbeil": "빈트 즈베일",
-    "southern lebanon": "남부 레바논",
-    "islamabad": "이슬라마바드",
-    "pakistan": "파키스탄",
-    "arabian sea": "아라비아해",
     "mashhad": "마슈하드",
     "damascus": "다마스쿠스",
     "baghdad": "바그다드",
@@ -661,18 +643,6 @@ def translate_title(title: str | None) -> str:
 
 def build_bilingual_incident(inc: Any, doc: Any, actor_side: str) -> dict[str, Any]:
     """지도 팝업·대시보드에서 바로 쓸 수 있는 KO/EN 이중 dict 반환."""
-    # 새 모듈을 사용해 자연스러운 한국어 번역과 톤 정제 적용
-    try:
-        from app.services.translator_v2 import translate_sentence_better
-        from app.services.tone_softener import soften_korean, soften_english
-        _better = translate_sentence_better
-        _soften_ko = soften_korean
-        _soften_en = soften_english
-    except Exception:
-        _better = translate_sentence
-        _soften_ko = lambda s: s or ""
-        _soften_en = lambda s: s or ""
-
     pub_date = ""
     if doc and getattr(doc, "published_at", None):
         pub_date = doc.published_at.strftime("%Y-%m-%d %H:%M UTC")
@@ -696,7 +666,7 @@ def build_bilingual_incident(inc: Any, doc: Any, actor_side: str) -> dict[str, A
         "pub_date": pub_date,
         "side_label_ko": side_label_ko,
         "side_label_en": side_label_en,
-        # 영문 원본 — 톤 정제만 적용
+        # 영문 원본
         "en": {
             "title": doc.title if doc else "",
             "publisher": doc.publisher if doc else "",
@@ -707,14 +677,14 @@ def build_bilingual_incident(inc: Any, doc: Any, actor_side: str) -> dict[str, A
             "event_type": inc.event_type or "-",
             "means": inc.means or "-",
             "target_type": inc.target_type or "-",
-            "damage_summary": _soften_en(inc.damage_summary or "-"),
-            "tactical_assessment": _soften_en(inc.tactical_assessment or "-"),
-            "strategic_assessment": _soften_en(inc.strategic_assessment or "-"),
+            "damage_summary": inc.damage_summary or "-",
+            "tactical_assessment": inc.tactical_assessment or "-",
+            "strategic_assessment": inc.strategic_assessment or "-",
             "verified_status": inc.verified_status or "-",
         },
-        # 한국어 번역 — 향상된 번역 + 톤 정제
+        # 한국어 번역
         "ko": {
-            "title": _better(doc.title) if doc else "",
+            "title": translate_title(doc.title) if doc else "",
             "publisher": doc.publisher if doc else "",
             "url": doc.url if doc else "#",
             "actor": translate_actor(inc.actor),
@@ -723,9 +693,9 @@ def build_bilingual_incident(inc: Any, doc: Any, actor_side: str) -> dict[str, A
             "event_type": translate_event_type(inc.event_type),
             "means": translate_means(inc.means),
             "target_type": translate_target_type(inc.target_type),
-            "damage_summary": _soften_ko(_better(inc.damage_summary)),
-            "tactical_assessment": _soften_ko(_better(inc.tactical_assessment)),
-            "strategic_assessment": _soften_ko(_better(inc.strategic_assessment)),
+            "damage_summary": translate_sentence(inc.damage_summary),
+            "tactical_assessment": translate_sentence(inc.tactical_assessment),
+            "strategic_assessment": translate_sentence(inc.strategic_assessment),
             "verified_status": translate_verified_status(inc.verified_status),
         },
         "latitude": inc.latitude,

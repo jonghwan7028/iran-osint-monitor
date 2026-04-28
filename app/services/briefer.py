@@ -19,8 +19,6 @@ from app.services.ko_translate import (
     translate_actor, translate_means, translate_location,
     translate_sentence, translate_title,
 )
-from app.services.translator_v2 import translate_sentence_better
-from app.services.tone_softener import soften_korean, soften_english
 
 
 def _esc(s: str | None) -> str:
@@ -265,7 +263,7 @@ def _lbl(key: str) -> str:
     parts = []
     for lang in ALL_LANGS:
         text = _esc(LABELS.get(key, {}).get(lang, key))
-        display = "" if lang == "ko" else "none"
+        display = "" if lang == "en" else "none"
         parts.append(f'<span class="ml" data-lang="{lang}" style="display:{display}">{text}</span>')
     return "".join(parts)
 
@@ -300,7 +298,7 @@ class BriefingService:
 
         # Language selector options
         lang_opts = "".join(
-            f'<option value="{l}"{"selected" if l == "ko" else ""}>{n}</option>'
+            f'<option value="{l}"{"selected" if l == "en" else ""}>{n}</option>'
             for l, n in LANG_NAMES.items()
         )
 
@@ -322,12 +320,12 @@ class BriefingService:
             loc_e = _esc(inc.location_name or "-")
             means_k = _esc(translate_means(inc.means))
             means_e = _esc(inc.means or "-")
-            damage_k = _esc(soften_korean(translate_sentence_better(inc.damage_summary)))
-            damage_e = _esc(soften_english(inc.damage_summary or "-"))
-            tact_k = _esc(soften_korean(translate_sentence_better(inc.tactical_assessment)))
-            tact_e = _esc(soften_english(inc.tactical_assessment or "-"))
-            strat_k = _esc(soften_korean(translate_sentence_better(inc.strategic_assessment)))
-            strat_e = _esc(soften_english(inc.strategic_assessment or "-"))
+            damage_k = _esc(translate_sentence(inc.damage_summary))
+            damage_e = _esc(inc.damage_summary or "-")
+            tact_k = _esc(translate_sentence(inc.tactical_assessment))
+            tact_e = _esc(inc.tactical_assessment or "-")
+            strat_k = _esc(translate_sentence(inc.strategic_assessment))
+            strat_e = _esc(inc.strategic_assessment or "-")
             sev = classify_damage_severity(inc.damage_summary)
             url = _esc(doc.url if doc else "#")
             pub = _esc(doc.publisher if doc else "-")
@@ -335,10 +333,11 @@ class BriefingService:
             title_e = _esc(doc.title if doc else "-")
 
             def _ml(ko: str, en: str) -> str:
-                """Generate multilingual spans. KO and EN differ; other langs show EN."""
-                out = f'<span class="ml" data-lang="ko" style="display:">{ko}</span>'
+                """Generate multilingual spans. EN is default visible; KO and others hidden."""
+                out = f'<span class="ml" data-lang="ko" style="display:none">{ko}</span>'
                 for lang in ALL_LANGS[1:]:  # en, es, zh, ja, fr, de
-                    out += f'<span class="ml" data-lang="{lang}" style="display:none">{en}</span>'
+                    display = "" if lang == "en" else "none"
+                    out += f'<span class="ml" data-lang="{lang}" style="display:{display}">{en}</span>'
                 return out
 
             cards_html += f"""

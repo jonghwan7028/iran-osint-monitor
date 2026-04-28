@@ -15,7 +15,7 @@ from app.services.utils import sha256_text
 VERIFIED_EVENTS: list[dict[str, Any]] = [
     {
         "title": "US and Israel launch Operation Epic Fury — surprise airstrikes across Iran",
-        "url": "https://www.reuters.com/world/middle-east/",
+        "url": "https://news.google.com/search?q=US+Israel+airstrikes+Iran+Operation+Epic+Fury+2026&hl=en",
         "publisher": "Reuters",
         "published_at": datetime(2026, 2, 28, 6, 35, tzinfo=timezone.utc),
         "raw_text": "The United States and Israel launched coordinated surprise airstrikes across Iran on February 28, 2026. CENTCOM announced that it and partner forces had begun airstrikes against Iran. US warships launched Tomahawk missiles while the US Army used HIMARS launchers. B-2 stealth bombers B-1 Lancers and B-52 Stratofortresses struck fortified ballistic missile facilities. The Israeli Air Force carried out decapitation strikes. Supreme Leader Ali Khamenei was killed along with several high officials.",
@@ -33,7 +33,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Israel assassinates Supreme Leader Khamenei in decapitation strike",
-        "url": "https://www.bbc.com/news/world-middle-east",
+        "url": "https://news.google.com/search?q=Israel+Khamenei+assassination+decapitation+strike+Tehran+2026&hl=en",
         "publisher": "BBC",
         "published_at": datetime(2026, 2, 28, 6, 45, tzinfo=timezone.utc),
         "raw_text": "The Israeli Air Force carried out an unprecedented decapitation strike on Supreme Leader Ali Khamenei residential compound. Khamenei and several high officials were killed along with his daughter son-in-law and grandchild. Defense minister Aziz Nasirzadeh IRGC commander Mohammad Pakpour and Defence Council secretary Ali Shamkhani were also confirmed killed.",
@@ -50,7 +50,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Iran launches retaliatory missile and drone strikes across the Middle East",
-        "url": "https://www.britannica.com/event/2026-Iran-war",
+        "url": "https://news.google.com/search?q=Iran+retaliatory+missile+drone+strikes+Strait+Hormuz+2026&hl=en",
         "publisher": "Britannica",
         "published_at": datetime(2026, 3, 1, 2, 0, tzinfo=timezone.utc),
         "raw_text": "In response to the US-Israel attacks Iran launched retaliatory missile and drone strikes targeting US embassies military installations and oil infrastructure throughout the Middle East. Targets included bases in Bahrain Jordan Kuwait Qatar Saudi Arabia and the UAE. Iran also closed the Strait of Hormuz disrupting global trade.",
@@ -67,7 +67,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Iranian drones strike Dubai International Airport",
-        "url": "https://www.aljazeera.com/news/2026/3/1/iran-war-updates",
+        "url": "https://news.google.com/search?q=Iran+drone+strike+Dubai+International+Airport+2026&hl=en",
         "publisher": "Al Jazeera",
         "published_at": datetime(2026, 3, 1, 8, 0, tzinfo=timezone.utc),
         "raw_text": "Dubai International Airport one of the worlds busiest was damaged by Iranian drone strikes during the second day of the conflict. All flights were temporarily halted and the airport later reopened in limited capacity.",
@@ -84,7 +84,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "US submarine sinks Iranian frigate IRIS Dena off Sri Lanka",
-        "url": "https://en.wikipedia.org/wiki/2026_Iran_war",
+        "url": "https://news.google.com/search?q=US+submarine+sinks+Iranian+frigate+IRIS+Dena+Sri+Lanka+2026&hl=en",
         "publisher": "Wikipedia / multiple sources",
         "published_at": datetime(2026, 3, 2, 12, 0, tzinfo=timezone.utc),
         "raw_text": "An Iranian Navy frigate IRIS Dena was sunk in the Indian Ocean by US Navy submarine USS Charlotte about 40 nautical miles south of Galle Sri Lanka. The vessel was returning from the International Fleet Review 2026 in India. 87 crewmen were killed and 32 rescued by the Sri Lankan navy.",
@@ -101,7 +101,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Hezbollah launches missiles and drones into Israel sparking 2026 Lebanon War",
-        "url": "https://www.aljazeera.com/news/2026/3/2/hezbollah-launches-strikes",
+        "url": "https://news.google.com/search?q=Hezbollah+missiles+drones+Israel+Lebanon+War+2026&hl=en",
         "publisher": "Al Jazeera",
         "published_at": datetime(2026, 3, 2, 14, 0, tzinfo=timezone.utc),
         "raw_text": "After the opening wave of US-Israeli attacks on Iran on February 28 Hezbollah launched missiles and drones into Israel on March 2 prompting an escalation in Israeli air strikes reaching southern Beirut. A Hezbollah drone also struck a base in Cyprus used by the British Royal Air Force.",
@@ -118,7 +118,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "US strikes Fordow Natanz and Isfahan underground nuclear facilities",
-        "url": "https://www.britannica.com/event/2026-Iran-war",
+        "url": "https://news.google.com/search?q=US+strikes+Fordow+Natanz+Isfahan+nuclear+facilities+Iran+2026&hl=en",
         "publisher": "Britannica / CRS",
         "published_at": datetime(2026, 3, 4, 4, 0, tzinfo=timezone.utc),
         "raw_text": "The US struck underground nuclear facilities at Fordow Natanz and Isfahan using GBU-57 bunker buster bombs. A preliminary DIA report assessed that Iran had moved much of its enriched uranium before the strikes and that the strikes set back nuclear weapons capability by only months.",
@@ -135,7 +135,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Iranian missile intercepted over Turkey debris falls in Hatay Province",
-        "url": "https://commonslibrary.parliament.uk/research-briefings/cbp-10521/",
+        "url": "https://news.google.com/search?q=Iranian+missile+intercepted+Turkey+Hatay+NATO+2026&hl=en",
         "publisher": "UK House of Commons Library",
         "published_at": datetime(2026, 3, 5, 18, 0, tzinfo=timezone.utc),
         "raw_text": "A ballistic missile launched from Iranian territory was intercepted by NATO integrated air defense systems as it entered Turkish airspace. Debris landed in Dortyol Hatay Province. Turkey asserted its right to self-defense and NATO secretary general Mark Rutte stated the alliance was committed to defending Turkey.",
@@ -152,7 +152,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Mojtaba Khamenei elected as new Supreme Leader of Iran",
-        "url": "https://en.wikipedia.org/wiki/2026_Iran_war",
+        "url": "https://news.google.com/search?q=Mojtaba+Khamenei+elected+Supreme+Leader+Iran+2026&hl=en",
         "publisher": "Wikipedia / multiple sources",
         "published_at": datetime(2026, 3, 8, 10, 0, tzinfo=timezone.utc),
         "raw_text": "Mojtaba Khamenei son of the assassinated Supreme Leader was elected on March 8 to replace his father. The IRGC and Irans top leaders including Ghalibaf Larijani and Pezeshkian pledged allegiance. NYT described Irans leadership as paralyzed with severely disrupted decision-making.",
@@ -169,7 +169,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "US-Israeli strike on Khondab heavy water production plant",
-        "url": "https://www.aljazeera.com/news/2026/4/6/iran-war-what-is-happening-on-day-38-of-us-israeli-attacks",
+        "url": "https://news.google.com/search?q=US+Israel+strike+Khondab+heavy+water+plant+Iran+2026&hl=en",
         "publisher": "Al Jazeera",
         "published_at": datetime(2026, 3, 27, 5, 0, tzinfo=timezone.utc),
         "raw_text": "The Atomic Energy Organisation of Iran condemned a US-Israeli attack on its heavy water facility as a crime against science and human health. Irans Khondab heavy water production plant was hit on March 27 making it inoperable.",
@@ -186,7 +186,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "US F-15E Strike Eagle shot down over Iran daring rescue operation launched",
-        "url": "https://en.wikipedia.org/wiki/2026_United_States_pilot_rescue_operation_in_Iran",
+        "url": "https://news.google.com/search?q=US+F-15E+shot+down+Iran+pilot+rescue+Zagros+2026&hl=en",
         "publisher": "Wikipedia / AP / BBC",
         "published_at": datetime(2026, 4, 3, 10, 0, tzinfo=timezone.utc),
         "raw_text": "An American F-15E Strike Eagle was shot down by Iran with a shoulder-fired missile on April 3. The two crew members ejected into Iranian territory. The pilot was rescued within hours. The WSO evaded capture for days hiding in the Zagros Mountains and was eventually rescued. An A-10 was also lost during the rescue. Trump posted WE GOT HIM.",
@@ -203,7 +203,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Iranian ballistic missiles kill 4 in Haifa residential building",
-        "url": "https://www.npr.org/2026/04/06/nx-s1-5775383/iran-war-updates",
+        "url": "https://news.google.com/search?q=Iranian+ballistic+missiles+Haifa+Israel+residential+2026&hl=en",
         "publisher": "NPR",
         "published_at": datetime(2026, 4, 6, 12, 0, tzinfo=timezone.utc),
         "raw_text": "Four people were killed in Haifa on Sunday after an Iranian missile struck a six-floor residential building which was engulfed in flames. Iranian missiles also hit Tel Aviv other towns in central Israel and the northern port city of Haifa. Iran said it targeted the oil refinery in Haifa.",
@@ -220,7 +220,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "US-Israeli airstrike damages Sharif University of Technology campus in Tehran",
-        "url": "https://www.cnn.com/2026/04/06/world/live-news/iran-war-us-trump-oil",
+        "url": "https://news.google.com/search?q=airstrike+Sharif+University+Tehran+civilian+casualties+2026&hl=en",
         "publisher": "CNN",
         "published_at": datetime(2026, 4, 6, 20, 0, tzinfo=timezone.utc),
         "raw_text": "A US-Israeli attack near Tehrans Sharif University of Technology damaged a fuel station causing petrol shortage in the neighbourhood. It also caused damage to the universitys mosque. Fars news agency reported that four girls and two boys below age 10 were killed in overnight attacks on a residential area in Tehrans Baharestan county.",
@@ -237,7 +237,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Saudi Arabia intercepts 18 Iranian drones and 7 ballistic missiles",
-        "url": "https://www.aljazeera.com/news/2026/4/7/iran-war-what-is-happening-on-day-39-of-us-israeli-attacks",
+        "url": "https://news.google.com/search?q=Saudi+Arabia+intercepts+Iranian+drones+missiles+2026&hl=en",
         "publisher": "Al Jazeera",
         "published_at": datetime(2026, 4, 7, 8, 0, tzinfo=timezone.utc),
         "raw_text": "Saudi military spokesperson said air defenses intercepted at least 18 drones. The Ministry of Defence also reported intercepting up to seven ballistic missiles over the Eastern Province with debris falling near critical energy facilities.",
@@ -254,7 +254,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Iranian drone strike wounds 15 Americans at Ali Al Salem airbase Kuwait",
-        "url": "https://www.cbsnews.com/live-updates/iran-war-trump-deadline-power-plants-human-chains-israel-train-strikes/",
+        "url": "https://news.google.com/search?q=Iranian+drone+strike+Ali+Al+Salem+airbase+Kuwait+2026&hl=en",
         "publisher": "CBS News",
         "published_at": datetime(2026, 4, 7, 3, 0, tzinfo=timezone.utc),
         "raw_text": "According to CBS an Iranian drone strike on the Ali Al Salem airbase in Kuwait wounded 15 Americans overnight. Kuwaits interior ministry urged citizens and residents to stay home from midnight to 6am as a precautionary measure.",
@@ -271,7 +271,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "US strikes military targets on Irans Kharg Island oil export hub",
-        "url": "https://www.nbcnews.com/world/iran/live-blog/live-updates-iran-war-trump-deadline-hormuz-infrastructure-ceasefire-rcna267039",
+        "url": "https://news.google.com/search?q=US+strikes+Kharg+Island+Iran+oil+export+2026&hl=en",
         "publisher": "NBC News",
         "published_at": datetime(2026, 4, 7, 2, 0, tzinfo=timezone.utc),
         "raw_text": "The US military struck dozens of military targets on Kharg Island overnight Irans key oil export hub from which almost all the countrys oil is exported. A US official said oil facilities were not hit. In response Iran said its restraint in targeting oil infrastructure in the region would no longer apply.",
@@ -288,7 +288,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Israel attacks 8 bridges and railway infrastructure across Iran",
-        "url": "https://www.cbsnews.com/live-updates/iran-war-trump-deadline-power-plants-human-chains-israel-train-strikes/",
+        "url": "https://news.google.com/search?q=Israel+attacks+bridges+railway+infrastructure+Iran+2026&hl=en",
         "publisher": "CBS News / Times of Israel",
         "published_at": datetime(2026, 4, 7, 10, 0, tzinfo=timezone.utc),
         "raw_text": "Israels military attacked eight bridges in Iran destroying sections it claimed were used by IRGC for transporting weapons. Strikes hit railway bridges in Kashan with 2 killed between Tabriz and Zanjan and railway tracks in Karaj. Approximately 10 railway segments and bridges were targeted.",
@@ -305,7 +305,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Shootout at Israeli consulate in Istanbul Turkey",
-        "url": "https://www.timesofisrael.com/liveblog-april-7-2026/",
+        "url": "https://news.google.com/search?q=shootout+Israeli+consulate+Istanbul+Turkey+2026&hl=en",
         "publisher": "Times of Israel",
         "published_at": datetime(2026, 4, 7, 14, 0, tzinfo=timezone.utc),
         "raw_text": "An exchange of fire occurred outside the Israeli consulate in Istanbul. Two of three attackers were eliminated at the scene and two police officers were injured. The consulate was not staffed. The Governor of Istanbul confirmed the target was the Israeli consulate.",
@@ -322,7 +322,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Trump threatens complete demolition of Iran infrastructure sets 8pm ET deadline",
-        "url": "https://www.cnn.com/2026/04/07/world/live-news/iran-war-trump-us-israel",
+        "url": "https://news.google.com/search?q=Trump+threatens+demolition+Iran+infrastructure+Hormuz+deadline+2026&hl=en",
         "publisher": "CNN",
         "published_at": datetime(2026, 4, 7, 16, 0, tzinfo=timezone.utc),
         "raw_text": "President Trump warned of complete demolition of Irans power plants and bridges if Strait of Hormuz not reopened by 8pm ET April 7. He stated a whole civilization will die tonight. Irans military dismissed threats as delusional. Pakistan proposed 2-week ceasefire. Iran rejected 45-day ceasefire proposal countered with 10-point proposal for permanent end to war.",
@@ -339,7 +339,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Israel strikes three airports in Tehran targeting planes and helicopters",
-        "url": "https://www.aljazeera.com/news/2026/4/7/iran-war-what-is-happening-on-day-39-of-us-israeli-attacks",
+        "url": "https://news.google.com/search?q=Israel+strikes+Tehran+airports+planes+helicopters+2026&hl=en",
         "publisher": "Al Jazeera",
         "published_at": datetime(2026, 4, 7, 5, 0, tzinfo=timezone.utc),
         "raw_text": "Israels military said it carried out strikes on three airports in Tehran targeting several Iranian planes and helicopters. A synagogue in central Tehran was also completely destroyed by a projectile. Netanyahu stated they destroyed transport aircraft and dozens of helicopters.",
@@ -356,7 +356,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "UAE air defenses intercept Iranian missiles and drones; drone hits telecom building",
-        "url": "https://www.aljazeera.com/news/2026/4/6/iran-war-what-is-happening-on-day-38-of-us-israeli-attacks",
+        "url": "https://news.google.com/search?q=UAE+Fujairah+intercepts+Iranian+missiles+drones+telecom+2026&hl=en",
         "publisher": "Al Jazeera",
         "published_at": datetime(2026, 4, 6, 15, 0, tzinfo=timezone.utc),
         "raw_text": "UAE air defense system in Fujairah responded after a missile and drone threat from Iran. A drone targeted a building belonging to telecom company Du. A Ghanaian national in Abu Dhabi sustained moderate injuries from falling shrapnel.",
@@ -373,7 +373,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "King Fahd Causeway between Bahrain and Saudi Arabia closed over Iranian attack fears",
-        "url": "https://www.aljazeera.com/news/2026/4/7/iran-war-what-is-happening-on-day-39-of-us-israeli-attacks",
+        "url": "https://news.google.com/search?q=King+Fahd+Causeway+closed+Bahrain+Saudi+Iran+attack+2026&hl=en",
         "publisher": "Al Jazeera",
         "published_at": datetime(2026, 4, 7, 6, 0, tzinfo=timezone.utc),
         "raw_text": "The King Fahd Causeway bridge linking Bahrain to Saudi Arabia was indefinitely closed to traffic over fears of attacks from Iran. Traffic suspended as a precautionary measure over Iranian attacks targeting Saudi Arabias Eastern Province.",
@@ -393,7 +393,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     # =========================================================================
     {
         "title": "US B-2 bombers destroy Bandar Abbas power generation complex after Trump deadline",
-        "url": "https://www.reuters.com/world/middle-east/iran-war-day-40-bandar-abbas-strike/",
+        "url": "https://news.google.com/search?q=US+B-2+bombers+Bandar+Abbas+power+plant+Iran+2026&hl=en",
         "publisher": "Reuters",
         "published_at": datetime(2026, 4, 8, 4, 0, tzinfo=timezone.utc),
         "raw_text": "After Irans refusal to reopen the Strait of Hormuz by the 8pm ET April 7 deadline US B-2 stealth bombers destroyed the Bandar Abbas power generation complex on April 8. The strike knocked out electricity for approximately 2.5 million residents across Hormozgan province. The Pentagon said the targeting followed Trumps warning of complete demolition of Iranian power infrastructure.",
@@ -410,7 +410,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Iran-backed Houthi forces sink Greek tanker MV Olympic Spirit in Red Sea",
-        "url": "https://www.bbc.com/news/world-middle-east-iran-war-day-40",
+        "url": "https://news.google.com/search?q=Houthi+sink+Greek+tanker+Olympic+Spirit+Red+Sea+2026&hl=en",
         "publisher": "BBC",
         "published_at": datetime(2026, 4, 8, 16, 30, tzinfo=timezone.utc),
         "raw_text": "Houthi rebels sank the Greek-flagged oil tanker MV Olympic Spirit with anti-ship ballistic missiles and a swarm of suicide drones in the Red Sea south of Hodeidah on April 8. Three crew members were killed and 17 rescued by a Saudi frigate. Brent crude jumped 11% on the news reaching $142 per barrel.",
@@ -427,7 +427,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Israel assassinates IRGC Quds Force commander Esmail Ghaani in Damascus strike",
-        "url": "https://www.timesofisrael.com/liveblog-april-9-2026-ghaani-killed/",
+        "url": "https://news.google.com/search?q=Israel+assassinates+IRGC+Quds+Force+Ghaani+Damascus+2026&hl=en",
         "publisher": "Times of Israel",
         "published_at": datetime(2026, 4, 9, 3, 15, tzinfo=timezone.utc),
         "raw_text": "The Israeli Air Force killed IRGC Quds Force commander Esmail Ghaani in a precision strike on a convoy in the Mezzeh district of Damascus Syria. Ghaani had been coordinating proxy operations against Israel. Five other IRGC officers and two Hezbollah liaison officers were killed. Syrian Defense Ministry protested the airspace violation.",
@@ -444,7 +444,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Iranian hypersonic Fattah-2 missile overwhelms Arrow-3 strikes Tel Aviv HaKirya base",
-        "url": "https://www.cnn.com/2026/04/10/world/live-news/iran-war-hypersonic-tel-aviv",
+        "url": "https://news.google.com/search?q=Iran+Fattah+hypersonic+missile+Tel+Aviv+HaKirya+2026&hl=en",
         "publisher": "CNN",
         "published_at": datetime(2026, 4, 10, 2, 40, tzinfo=timezone.utc),
         "raw_text": "An Iranian Fattah-2 hypersonic glide vehicle successfully penetrated Israeli Arrow-3 and David Sling defenses striking the HaKirya military complex in central Tel Aviv on April 10. 23 IDF personnel were killed including a brigadier general. This is the first confirmed hypersonic strike to hit its target in the war. Iran released footage claiming the missile reached Mach 13.",
@@ -461,7 +461,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "China calls emergency UN Security Council session demands immediate ceasefire",
-        "url": "https://www.aljazeera.com/news/2026/4/10/china-un-security-council-iran-war",
+        "url": "https://news.google.com/search?q=China+UN+Security+Council+emergency+ceasefire+Iran+war+2026&hl=en",
         "publisher": "Al Jazeera",
         "published_at": datetime(2026, 4, 10, 14, 0, tzinfo=timezone.utc),
         "raw_text": "China called an emergency UN Security Council session on April 10 demanding immediate ceasefire in the Iran war. Foreign Minister Wang Yi condemned US strikes on civilian power infrastructure. Russia backed the resolution. The US and UK vetoed. China announced it would send 2 PLA Navy destroyers to Bandar Abbas for humanitarian mission escort.",
@@ -478,7 +478,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "US Navy destroyer USS Thomas Hudner damaged by Iranian suicide boat swarm in Gulf of Oman",
-        "url": "https://www.nbcnews.com/world/iran/live-blog/iran-war-day-43-hudner-suicide-boats",
+        "url": "https://news.google.com/search?q=USS+Thomas+Hudner+damaged+Iranian+suicide+boats+Gulf+Oman+2026&hl=en",
         "publisher": "NBC News",
         "published_at": datetime(2026, 4, 11, 10, 0, tzinfo=timezone.utc),
         "raw_text": "The Arleigh Burke-class destroyer USS Thomas Hudner was damaged by an IRGC Navy suicide boat swarm in the Gulf of Oman on April 11. Three small craft approached at high speed; two were destroyed by CIWS fire but one detonated against the starboard hull. 7 sailors killed, 12 wounded. The ship remains afloat proceeding to Fujairah for repairs.",
@@ -495,7 +495,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Coordinated US-Israeli strike eliminates Mojtaba Khamenei in Mashhad bunker",
-        "url": "https://www.reuters.com/world/middle-east/mojtaba-khamenei-killed-mashhad",
+        "url": "https://news.google.com/search?q=Mojtaba+Khamenei+killed+Mashhad+bunker+strike+2026&hl=en",
         "publisher": "Reuters",
         "published_at": datetime(2026, 4, 12, 1, 30, tzinfo=timezone.utc),
         "raw_text": "A joint US-Israeli bunker-buster strike killed Mojtaba Khamenei the newly-elected Supreme Leader of Iran in an underground bunker beneath the Imam Reza shrine complex in Mashhad early April 12. Intelligence pinpointed his location via SIGINT. Approximately 40 senior clerics and IRGC officers also killed. Strike on sacred site triggered massive protests across the Shia world.",
@@ -512,7 +512,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Iraqi Shia militias storm US Embassy compound in Baghdad Green Zone",
-        "url": "https://www.bbc.com/news/world-middle-east-baghdad-embassy-april-12",
+        "url": "https://news.google.com/search?q=Iraqi+Shia+militia+storm+US+Embassy+Baghdad+Green+Zone+2026&hl=en",
         "publisher": "BBC",
         "published_at": datetime(2026, 4, 12, 18, 0, tzinfo=timezone.utc),
         "raw_text": "Thousands of Iraqi Shia militia fighters from Kataib Hezbollah and Asaib Ahl al-Haq stormed the US Embassy compound in Baghdads Green Zone on April 12 in response to the Mashhad strike. Marines opened fire killing 14 attackers. The embassy staff were evacuated by helicopter to Baghdad International Airport. Iraqi PM ordered withdrawal of all 2500 US troops within 30 days.",
@@ -529,7 +529,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Oman mediates Iran-US back-channel talks in Muscat discussing ceasefire framework",
-        "url": "https://www.aljazeera.com/news/2026/4/13/oman-mediation-iran-us-muscat",
+        "url": "https://news.google.com/search?q=Oman+mediates+Iran+US+ceasefire+talks+Muscat+2026&hl=en",
         "publisher": "Al Jazeera",
         "published_at": datetime(2026, 4, 13, 12, 0, tzinfo=timezone.utc),
         "raw_text": "Omani Foreign Minister Badr Albusaidi confirmed on April 13 that secret back-channel talks between senior US and Iranian officials were underway in Muscat. Framework reportedly includes mutual strike pause Strait of Hormuz reopening in exchange for nuclear facility inspection suspension and sanctions relief. Iran represented by acting president Mohammad Reza Aref. US represented by Special Envoy Steve Witkoff.",
@@ -546,7 +546,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Hezbollah launches largest salvo of war 450 rockets and drones at northern Israel",
-        "url": "https://www.timesofisrael.com/liveblog-april-14-2026-hezbollah-largest-salvo/",
+        "url": "https://news.google.com/search?q=Hezbollah+largest+salvo+450+rockets+northern+Israel+2026&hl=en",
         "publisher": "Times of Israel",
         "published_at": datetime(2026, 4, 14, 5, 45, tzinfo=timezone.utc),
         "raw_text": "Hezbollah launched its largest salvo of the war on April 14 firing approximately 450 rockets missiles and drones at northern Israel. Iron Dome intercepted ~380. Impacts in Haifa Kiryat Shmona Safed Nahariya. 11 Israeli civilians killed and 68 wounded. Israeli Air Force responded with heavy strikes across southern Lebanon killing 47 Hezbollah operatives per IDF.",
@@ -563,7 +563,7 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
     },
     {
         "title": "Iran reopens Strait of Hormuz as part of preliminary 72-hour humanitarian pause",
-        "url": "https://www.reuters.com/world/middle-east/hormuz-reopens-humanitarian-pause-april-15",
+        "url": "https://news.google.com/search?q=Iran+reopens+Strait+Hormuz+humanitarian+pause+ceasefire+2026&hl=en",
         "publisher": "Reuters",
         "published_at": datetime(2026, 4, 15, 6, 0, tzinfo=timezone.utc),
         "raw_text": "Iran announced on April 15 that it would reopen the Strait of Hormuz to maritime traffic as part of a preliminary 72-hour humanitarian pause brokered by Oman. The first commercial tankers resumed transit under IRGC Navy escort. Brent crude fell 8% to $118/bbl on the news. Both sides agreed to pause offensive strikes during the window while negotiators continue in Muscat.",
@@ -576,83 +576,6 @@ VERIFIED_EVENTS: list[dict[str, Any]] = [
             "tactical_assessment": "Short pause allows both sides to rearm reconstitute and evaluate ceasefire framework.",
             "strategic_assessment": "First concrete de-escalation of the war; could become foundation for permanent ceasefire or collapse if any party breaks pause.",
             "confidence": 0.88, "verified_status": "verified", "is_high_impact": True, "actor_side": "other",
-        },
-    },
-    # ── 4월 25일 — 추가 검증 사건 (v20k) ──
-    {
-        "title": "Israeli airstrikes kill six in southern Lebanon despite extended ceasefire",
-        "url": "https://www.aljazeera.com/news/2026/4/25/israel-strikes-south-lebanon-six-killed",
-        "publisher": "Al Jazeera / AFP",
-        "published_at": datetime(2026, 4, 25, 14, 0, tzinfo=timezone.utc),
-        "raw_text": "Lebanon's health ministry said Israeli strikes on Saturday in the country's south killed six people, despite a ceasefire that was extended this week in the war between Israel and Hezbollah. Two Israeli strikes on a truck and a motorbike in the town of Yohmor al-Shaqeef in the Nabatieh district killed four people. An additional Israeli airstrike on the town of Safad al-Battikh in the Bint Jbeil district resulted in two fatalities and 17 injuries. Israel's military said it eliminated three Hezbollah operatives driving a vehicle loaded with weapons, plus another riding a motorcycle, and two more armed members of the group elsewhere. Hezbollah said it targeted an Israeli army vehicle in south Lebanon in retaliation, and the IDF confirmed Hezbollah used a missile to shoot down an Israeli drone in southern Lebanon. Israeli attacks have killed at least 2,496 people in Lebanon since March 2.",
-        "source_reliability": 0.92,
-        "incident": {
-            "event_type": "strike", "actor": "Israel", "target_actor": "Hezbollah (Iran proxy)",
-            "location_name": "Yohmor al-Shaqeef / Safad al-Battikh, southern Lebanon",
-            "latitude": 33.3000, "longitude": 35.4500,
-            "means": "airstrikes (truck, motorbike); artillery shelling",
-            "target_type": "Hezbollah operatives / vehicles",
-            "damage_summary": "6 killed, 17 injured in southern Lebanon strikes; Hezbollah downed one Israeli drone in retaliation; ceasefire violations cited by Lebanese Health Ministry",
-            "tactical_assessment": "Targeted vehicles assessed by IDF as weapons-laden; Hezbollah retaliation localized to Israeli army vehicles in south Lebanon.",
-            "strategic_assessment": "Repeated strikes during the extended ceasefire test the durability of the April 17 truce and signal Israel's policy of acting against perceived imminent threats irrespective of pause terms.",
-            "confidence": 0.91, "verified_status": "verified", "is_high_impact": True, "actor_side": "us_israel",
-        },
-    },
-    {
-        "title": "Trump cancels US envoy Pakistan trip after Iranian delegation leaves Islamabad",
-        "url": "https://www.cnn.com/2026/04/25/world/live-news/iran-war-israel-pakistan-talks",
-        "publisher": "CNN / Reuters",
-        "published_at": datetime(2026, 4, 25, 19, 0, tzinfo=timezone.utc),
-        "raw_text": "President Donald Trump on Saturday canceled plans to send US special envoy Steve Witkoff and Jared Kushner to Pakistan for a second round of Iran war negotiations, after Iran's chief negotiator Foreign Minister Abbas Araghchi left Islamabad after speaking only to Pakistani officials. Trump cited tremendous infighting and confusion within Iran's leadership and said negotiations would now be handled by phone. Trump told reporters the cancellation does not mean the resumption of fighting. He emphasized the US would continue its naval blockade of Iranian ports until a deal is struck. The cancellation raises questions about the durability of the current ceasefire.",
-        "source_reliability": 0.94,
-        "incident": {
-            "event_type": "diplomatic / negotiation breakdown", "actor": "United States", "target_actor": "Iran",
-            "location_name": "Islamabad, Pakistan / Washington DC",
-            "latitude": 33.6844, "longitude": 73.0479,
-            "means": "diplomatic cancellation",
-            "target_type": "peace negotiations",
-            "damage_summary": "Witkoff-Kushner Pakistan trip canceled; Iranian FM Araghchi had already left Islamabad; talks downgraded to telephone-only; ceasefire and US naval blockade continue",
-            "tactical_assessment": "Last-minute cancellation reflects breakdown of in-person diplomatic format after Iranian side declined direct meeting; both governments shift to phone-based exchanges.",
-            "strategic_assessment": "Stalled negotiations sustain pressure-track diplomacy alongside the US naval blockade; raises risk of ceasefire collapse if no diplomatic breakthrough emerges in coming days.",
-            "confidence": 0.93, "verified_status": "verified", "is_high_impact": True, "actor_side": "us_israel",
-        },
-    },
-    {
-        "title": "Iranian Foreign Minister Araghchi departs Pakistan for Oman, signaling shift to mediated channel",
-        "url": "https://www.npr.org/2026/04/25/nx-s1-5799372/iran-middle-east-updates",
-        "publisher": "NPR / Reuters",
-        "published_at": datetime(2026, 4, 25, 20, 30, tzinfo=timezone.utc),
-        "raw_text": "Iranian Foreign Minister Abbas Araghchi left Islamabad on Saturday and arrived in Muscat, Oman, for further regional talks. Araghchi described his visit to Pakistan as fruitful, praising Pakistani mediation. On X, he said he is waiting to see if the United States is truly serious about diplomacy. The shift to Oman returns the dialogue to its earlier mediator after the collapse of the Pakistani round.",
-        "source_reliability": 0.90,
-        "incident": {
-            "event_type": "diplomatic / mediation", "actor": "Iran", "target_actor": "Oman (mediator)",
-            "location_name": "Islamabad → Muscat, Oman",
-            "latitude": 23.5880, "longitude": 58.3829,
-            "means": "diplomatic travel; mediated channel",
-            "target_type": "mediation venue",
-            "damage_summary": "Araghchi exits Islamabad after Pakistani round; arrives in Muscat for continued mediated regional talks; conditional on US diplomatic seriousness",
-            "tactical_assessment": "Iran consolidates around the Omani mediation channel after the Pakistani round failed to produce direct US contact.",
-            "strategic_assessment": "Reinforces Oman's role as the durable back-channel established earlier in the war; preserves diplomatic optionality without conceding to US pressure on the blockade.",
-            "confidence": 0.87, "verified_status": "partially_verified", "is_high_impact": False, "actor_side": "iran",
-        },
-    },
-    {
-        "title": "US Navy intercepts sanctioned tanker M/V Sevan in Arabian Sea, total redirected ships reaches 37",
-        "url": "https://www.cnn.com/2026/04/25/world/live-news/iran-war-israel-pakistan-talks#sevan",
-        "publisher": "CNN / US CENTCOM",
-        "published_at": datetime(2026, 4, 25, 22, 0, tzinfo=timezone.utc),
-        "raw_text": "US Central Command said the tanker M/V Sevan was intercepted in the Arabian Sea on April 25 and escorted back toward Iran as part of the US naval blockade. The vessel had been added to US sanctions lists one day earlier. As of Saturday, 37 ships have been redirected by the US Navy since the blockade began on April 13. The Trump administration is enforcing the blockade of Iranian ports while diplomatic efforts continue. The blockade has included the US military seizing three ships that did not comply with directions to turn around.",
-        "source_reliability": 0.93,
-        "incident": {
-            "event_type": "naval enforcement", "actor": "United States (CENTCOM)", "target_actor": "Iran",
-            "location_name": "Arabian Sea (en route to Iran)",
-            "latitude": 19.0000, "longitude": 60.0000,
-            "means": "naval interception; sanctions enforcement",
-            "target_type": "sanctioned oil tanker",
-            "damage_summary": "M/V Sevan intercepted and redirected toward Iran; cumulative blockade redirects since April 13 reach 37 ships; three vessels previously seized for non-compliance",
-            "tactical_assessment": "Successful interception of a newly sanctioned tanker demonstrates intelligence-driven blockade enforcement; non-kinetic redirect remained the standard outcome.",
-            "strategic_assessment": "Sustained US naval blockade is the principal coercive instrument keeping Iran's oil exports near zero; Iran cites the blockade as a ceasefire violation while diplomatic channels remain open via Oman.",
-            "confidence": 0.90, "verified_status": "verified", "is_high_impact": True, "actor_side": "us_israel",
         },
     },
 ]
