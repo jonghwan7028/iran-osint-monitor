@@ -35,6 +35,14 @@ class Settings:
             'Iran war ceasefire OR diplomacy 2026',
             'Hezbollah Lebanon Israel 2026',
             'IRGC attack OR Iran drone 2026',
+            # 추가 쿼리: 중복 방지를 위한 다양화
+            'Iran nuclear facility attack OR Fordow OR Natanz 2026',
+            'US Navy Persian Gulf Iran tensions 2026',
+            'Iran retaliation OR counterattack Israel 2026',
+            'Houthis Red Sea shipping attack 2026',
+            'Iran proxy militia Iraq Syria 2026',
+            'Israel Iran air defense missile intercept 2026',
+            'Iran oil exports sanctions blockade 2026',
         ]
     )
     trusted_domains: List[str] = field(

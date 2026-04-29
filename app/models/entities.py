@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -21,7 +21,7 @@ class SourceDocument(Base):
     raw_text: Mapped[str] = mapped_column(Text, nullable=False)
     content_hash: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     source_reliability: Mapped[float] = mapped_column(Float, default=0.5)
-    ingestion_time: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    ingestion_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     incidents: Mapped[list[Incident]] = relationship(back_populates="document")
 
@@ -44,7 +44,7 @@ class Incident(Base):
     strategic_assessment: Mapped[str | None] = mapped_column(Text, nullable=True)
     confidence: Mapped[float] = mapped_column(Float, default=0.5)
     verified_status: Mapped[str] = mapped_column(String(50), default="partially_verified")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     is_high_impact: Mapped[bool] = mapped_column(Boolean, default=False)
 
     document: Mapped[SourceDocument] = relationship(back_populates="incidents")
@@ -55,7 +55,7 @@ class PageView(Base):
     __tablename__ = "page_views"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    visited_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    visited_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     ip_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # 익명화된 IP
     user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
@@ -69,4 +69,4 @@ class Feedback(Base):
     message: Mapped[str] = mapped_column(Text, nullable=False)
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 1-5
     ip_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # 익명화된 IP
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

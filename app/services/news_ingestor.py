@@ -218,8 +218,25 @@ class GoogleNewsRSSIngestor:
                 stats["gdelt_failures"] += 1
         return candidates, stats
 
+    def _rotate_queries(self, queries: List[str], max_active: int = 10) -> List[str]:
+        """시간 기반 쿼리 회전 — 매 실행마다 다른 쿼리 조합을 사용하여 중복을 줄인다."""
+        from datetime import datetime, timezone
+        if len(queries) <= max_active:
+            return queries
+        # 현재 시간의 hour를 seed로 사용하여 쿼리 그룹을 회전
+        hour_seed = int(datetime.now(timezone.utc).strftime("%Y%m%d%H"))
+        # 항상 처음 7개 (핵심 쿼리)는 포함, 나머지에서 회전 선택
+        core = queries[:7]
+        extra = queries[7:]
+        if not extra:
+            return core
+        # 회전 오프셋 계산
+        offset = hour_seed % len(extra)
+        selected_extra = (extra[offset:] + extra[:offset])[:max_active - len(core)]
+        return core + selected_extra
+
     def ingest(self, queries: List[str] | None = None, max_per_query: int = 25, days: int = 7) -> dict[str, Any]:
-        queries = queries or settings.default_queries
+        queries = self._rotate_queries(queries or settings.default_queries)
         inserted = 0
         duplicate_in_feed = 0
         duplicate_in_db = 0

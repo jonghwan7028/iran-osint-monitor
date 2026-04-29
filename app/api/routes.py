@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import feedback_limiter, public_limiter
 
 
 def require_admin(request: Request) -> None:
@@ -606,6 +607,7 @@ class FeedbackIn(BaseModel):
 
 @router.post("/api/feedback")
 def submit_feedback(body: FeedbackIn, request: Request, db: Session = Depends(get_db)):
+    feedback_limiter.check(request)
     import hashlib
     from app.models.entities import Feedback
     client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
@@ -648,8 +650,9 @@ _VISITOR_BASE = 12457
 @router.post("/api/pageview")
 def record_pageview(request: Request, db: Session = Depends(get_db)):
     """페이지 방문 기록 (프론트에서 페이지 로드 시 호출)."""
+    public_limiter.check(request)
     import hashlib
-    from datetime import datetime as _dt
+    from datetime import datetime as _dt, timezone
     from app.models.entities import PageView
     client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
     ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16]
@@ -658,7 +661,7 @@ def record_pageview(request: Request, db: Session = Depends(get_db)):
     db.add(pv)
     db.commit()
     total = db.query(PageView).count() + _VISITOR_BASE
-    today_start = _dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = _dt.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     today = db.query(PageView).filter(PageView.visited_at >= today_start).count()
     return {"total": total, "today": today}
 
@@ -666,10 +669,10 @@ def record_pageview(request: Request, db: Session = Depends(get_db)):
 @router.get("/api/pageview")
 def get_pageview_stats(db: Session = Depends(get_db)):
     """방문 통계 조회."""
-    from datetime import datetime as _dt
+    from datetime import datetime as _dt, timezone
     from app.models.entities import PageView
     total = db.query(PageView).count() + _VISITOR_BASE
-    today_start = _dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = _dt.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     today = db.query(PageView).filter(PageView.visited_at >= today_start).count()
     return {"total": total, "today": today}
 
