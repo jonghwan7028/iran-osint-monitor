@@ -47,8 +47,9 @@ services:
     name: iran-osint-hourly-ingest
     env: docker
     schedule: "0 * * * *"   # 매시 정각
-    dockerCommand: |
-      sh -c 'curl -fsS -X POST "$WEB_URL/pipeline/run" -H "X-Admin-Token: $ADMIN_TOKEN" --max-time 300 || echo "ingest call failed"'
+    # NOTE: Render 의 dockerCommand 는 복잡한 sh -c '...' 인라인을 안전하게 파싱하지 못한다
+    # (전체 문자열을 단일 실행 파일로 취급해 exit 127 이 발생). 따라서 별도 스크립트로 분리.
+    dockerCommand: sh /app/scripts/cron_ingest.sh
     envVars:
       - key: WEB_URL
         sync: false    # 배포 후 웹 서비스 URL 수동 입력 (예: https://iran-osint-web.onrender.com)
@@ -62,8 +63,9 @@ services:
     name: iran-osint-daily-refresh
     env: docker
     schedule: "0 0 * * *"   # 매일 00:00 UTC (한국 09:00)
-    dockerCommand: |
-      sh -c 'curl -fsS -X POST "$WEB_URL/pipeline/refresh" -H "X-Admin-Token: $ADMIN_TOKEN" --max-time 120 || echo "refresh call failed"'
+    # NOTE: Render 의 dockerCommand 는 복잡한 sh -c '...' 인라인을 안전하게 파싱하지 못한다
+    # (전체 문자열을 단일 실행 파일로 취급해 exit 127 이 발생). 따라서 별도 스크립트로 분리.
+    dockerCommand: sh /app/scripts/cron_refresh.sh
     envVars:
       - key: WEB_URL
         sync: false    # 배포 후 웹 서비스 URL 수동 입력

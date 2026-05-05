@@ -1,8 +1,8 @@
 {
   "state": "completed",
   "step": "완료",
-  "message": "검증 데이터 로드 완료: 문서 0건, 사건 0건",
-  "updated_at": "2026-04-19T07:47:49.515648+00:00",
+  "message": "새 기사 16건을 수집했고, 사건 데이터와 지도/브리핑을 갱신했습니다.",
+  "updated_at": "2026-05-05T05:54:38.416014+00:00",
   "history": [
     {
       "time": "2026-04-19T02:49:44.963773+00:00",
@@ -141,27 +141,137 @@
       "state": "completed",
       "step": "완료",
       "message": "검증 데이터 로드 완료: 문서 0건, 사건 0건"
+    },
+    {
+      "time": "2026-05-05T05:48:41.072720+00:00",
+      "state": "running",
+      "step": "데이터 수집 중",
+      "message": "Google News RSS 및 GDELT에서 관련 기사를 수집하고 있습니다."
+    },
+    {
+      "time": "2026-05-05T05:54:37.994198+00:00",
+      "state": "running",
+      "step": "사건 추출 중",
+      "message": "행위자, 위치, 공격수단, 피해 정보를 추출 중입니다."
+    },
+    {
+      "time": "2026-05-05T05:54:38.335657+00:00",
+      "state": "running",
+      "step": "지도 생성 중",
+      "message": "좌표 보정 및 지도 렌더링 중입니다."
+    },
+    {
+      "time": "2026-05-05T05:54:38.376971+00:00",
+      "state": "running",
+      "step": "브리핑 작성 중",
+      "message": "HTML 브리핑을 생성 중입니다."
+    },
+    {
+      "time": "2026-05-05T05:54:38.416010+00:00",
+      "state": "completed",
+      "step": "완료",
+      "message": "새 기사 16건을 수집했고, 사건 데이터와 지도/브리핑을 갱신했습니다."
     }
   ],
   "last_result": {
     "status": "ok",
-    "message": "검증 데이터 로드 완료: 문서 0건, 사건 0건",
-    "seed_result": {
-      "documents_inserted": 0,
-      "incidents_inserted": 0,
-      "skipped": false
+    "message": "새 기사 16건을 수집했고, 사건 데이터와 지도/브리핑을 갱신했습니다.",
+    "ingest": {
+      "inserted": 16,
+      "feed_entries_seen": 300,
+      "gdelt_entries_seen": 15,
+      "duplicate_in_feed": 299,
+      "duplicate_in_db": 0,
+      "fetch_failures": 9,
+      "sources": {
+        "google": {
+          "feed_entries_seen": 300,
+          "fetch_failures": 0,
+          "per_query": [
+            {
+              "query": "\"Iran war\" OR \"Iran conflict\" 2026",
+              "entries_seen": 30
+            },
+            {
+              "query": "Iran missile strike Israel OR US base 2026",
+              "entries_seen": 30
+            },
+            {
+              "query": "US strike Iran OR Israel strike Iran 2026",
+              "entries_seen": 30
+            },
+            {
+              "query": "Strait of Hormuz Iran 2026",
+              "entries_seen": 30
+            },
+            {
+              "query": "Iran war ceasefire OR diplomacy 2026",
+              "entries_seen": 30
+            },
+            {
+              "query": "Hezbollah Lebanon Israel 2026",
+              "entries_seen": 30
+            },
+            {
+              "query": "IRGC attack OR Iran drone 2026",
+              "entries_seen": 30
+            },
+            {
+              "query": "Houthis Red Sea shipping attack 2026",
+              "entries_seen": 30
+            },
+            {
+              "query": "Iran proxy militia Iraq Syria 2026",
+              "entries_seen": 30
+            },
+            {
+              "query": "Israel Iran air defense missile intercept 2026",
+              "entries_seen": 30
+            }
+          ]
+        },
+        "gdelt": {
+          "gdelt_entries_seen": 15,
+          "gdelt_failures": 9,
+          "per_query": [
+            {
+              "query": "Houthis Red Sea shipping attack 2026",
+              "entries_seen": 15
+            }
+          ]
+        }
+      },
+      "candidates_total": 315,
+      "window_days": 90
+    },
+    "extract": {
+      "before_unextracted": 16,
+      "extracted": 16,
+      "after_unextracted": 0
     },
     "totals": {
       "window_days": 90,
-      "window_start": "2026-01-19T07:47:49.515061Z",
-      "documents": 34,
-      "incidents": 34,
+      "window_start": "2026-02-04T05:54:38.415570Z",
+      "documents": 49,
+      "incidents": 49,
       "verified_incidents": 33,
-      "mappable_incidents": 34,
+      "mappable_incidents": 49,
       "fallback_mappable_incidents": 0,
       "unmappable_incidents": 0
-    }
+    },
+    "map_url": "/map",
+    "health": {
+      "level": "good",
+      "inserted": 16,
+      "candidates_total": 315,
+      "duplicates_total": 299,
+      "documents_in_window": 49,
+      "incidents_in_window": 49
+    },
+    "advice": [
+      "기사 본문 fetch 실패가 많습니다. HTTP timeout과 user-agent를 조정하세요."
+    ]
   },
-  "last_success_at": "2026-04-19T07:47:49.515646+00:00",
+  "last_success_at": "2026-05-05T05:54:38.416012+00:00",
   "last_failure_reason": null
 }

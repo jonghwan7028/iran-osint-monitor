@@ -64,7 +64,15 @@
 
             --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
                          "Helvetica Neue", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+            /* 폰트 스케일 (작게/보통/크게/아주 크게). 0.85 / 1 / 1.18 / 1.4
+               JS 가 #fsSelect 변경 시 documentElement 의 --fs 값을 갱신한다. */
+            --fs: 1;
         }
+
+        /* 페이지 전체를 비율 스케일링 (zoom 은 폰트는 물론 패딩·이미지까지 함께 키워
+           시인성을 균일하게 끌어올림 — 접근성 도구의 기본 동작과 동일). */
+        html { zoom: var(--fs); }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; }
@@ -1089,6 +1097,12 @@
             <option value="fr">🇫🇷 Français</option>
             <option value="de">🇩🇪 Deutsch</option>
         </select>
+        <select class="lang-select" id="fsSelect" title="Font size" aria-label="Font size">
+            <option value="0.85"           data-fs-key="fs_small">Small</option>
+            <option value="1" selected     data-fs-key="fs_normal">Normal</option>
+            <option value="1.18"           data-fs-key="fs_large">Large</option>
+            <option value="1.4"            data-fs-key="fs_xlarge">Extra large</option>
+        </select>
     </div>
 </header>
 
@@ -2003,7 +2017,55 @@ document.addEventListener('DOMContentLoaded', () => {
     applyGlobalLang(globalLang);
 
     const langSel = document.getElementById('langSelect');
-    if (langSel) langSel.addEventListener('change', () => applyGlobalLang(langSel.value));
+    if (langSel) {
+        // localStorage 에 저장된 언어 복원
+        try {
+            const savedLang = localStorage.getItem('osintLang');
+            if (savedLang) {
+                langSel.value = savedLang;
+                applyGlobalLang(savedLang);
+            }
+        } catch (e) {}
+        langSel.addEventListener('change', () => {
+            applyGlobalLang(langSel.value);
+            try { localStorage.setItem('osintLang', langSel.value); } catch (e) {}
+        });
+    }
+
+    // 폰트 크기 선택 — 작게/보통/크게/아주 크게 (--fs CSS 변수 사용 + zoom)
+    const FS_LABELS = {
+        "fs_small":  {"ko":"작게","en":"Small","es":"Pequeño","zh":"小","ja":"小","fr":"Petit","de":"Klein"},
+        "fs_normal": {"ko":"보통","en":"Normal","es":"Normal","zh":"标准","ja":"標準","fr":"Normal","de":"Normal"},
+        "fs_large":  {"ko":"크게","en":"Large","es":"Grande","zh":"大","ja":"大","fr":"Grand","de":"Groß"},
+        "fs_xlarge": {"ko":"아주 크게","en":"Extra large","es":"Muy grande","zh":"超大","ja":"特大","fr":"Très grand","de":"Sehr groß"}
+    };
+    function applyFontScale(scale) {
+        document.documentElement.style.setProperty('--fs', String(scale));
+        try { localStorage.setItem('osintFs', String(scale)); } catch (e) {}
+    }
+    function relabelFsOptions(lang) {
+        document.querySelectorAll('#fsSelect option').forEach(opt => {
+            const k = opt.dataset.fsKey;
+            if (k && FS_LABELS[k] && FS_LABELS[k][lang]) {
+                opt.textContent = FS_LABELS[k][lang];
+            }
+        });
+    }
+    const fsSel = document.getElementById('fsSelect');
+    if (fsSel) {
+        try {
+            const savedFs = localStorage.getItem('osintFs');
+            if (savedFs) fsSel.value = savedFs;
+        } catch (e) {}
+        applyFontScale(fsSel.value);
+        relabelFsOptions(langSel ? langSel.value : 'en');
+
+        fsSel.addEventListener('change', () => applyFontScale(fsSel.value));
+        if (langSel) {
+            // 언어 변경 시 폰트 크기 옵션 라벨도 동기화
+            langSel.addEventListener('change', () => relabelFsOptions(langSel.value));
+        }
+    }
 
     document.querySelectorAll('tr.bi-row').forEach(row => {
         row.addEventListener('click', (e) => {

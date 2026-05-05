@@ -19,6 +19,7 @@ from app.services.ko_translate import (
     translate_actor, translate_means, translate_location,
     translate_sentence, translate_title,
 )
+from app.services import i18n
 
 
 def _esc(s: str | None) -> str:
@@ -243,6 +244,51 @@ LABELS = {
         "fr": "Langue",
         "de": "Sprache",
     },
+    "font_size": {
+        "ko": "글자 크기",
+        "en": "Font size",
+        "es": "Tamaño de letra",
+        "zh": "字体大小",
+        "ja": "文字サイズ",
+        "fr": "Taille du texte",
+        "de": "Schriftgröße",
+    },
+    "fs_small": {
+        "ko": "작게",
+        "en": "Small",
+        "es": "Pequeño",
+        "zh": "小",
+        "ja": "小",
+        "fr": "Petit",
+        "de": "Klein",
+    },
+    "fs_normal": {
+        "ko": "보통",
+        "en": "Normal",
+        "es": "Normal",
+        "zh": "标准",
+        "ja": "標準",
+        "fr": "Normal",
+        "de": "Normal",
+    },
+    "fs_large": {
+        "ko": "크게",
+        "en": "Large",
+        "es": "Grande",
+        "zh": "大",
+        "ja": "大",
+        "fr": "Grand",
+        "de": "Groß",
+    },
+    "fs_xlarge": {
+        "ko": "아주 크게",
+        "en": "Extra large",
+        "es": "Muy grande",
+        "zh": "超大",
+        "ja": "特大",
+        "fr": "Très grand",
+        "de": "Sehr groß",
+    },
 }
 
 LANG_NAMES = {
@@ -268,6 +314,55 @@ def _lbl(key: str) -> str:
     return "".join(parts)
 
 
+def _ml_from_en(en_text: str | None, ko_override: str | None = None) -> str:
+    """영어 원문 → 7개 언어 span 세트.
+    ko_override 가 주어지면 한국어 셀에 그대로 사용 (사전 기반 정확 번역이 있는 경우),
+    없으면 i18n.translate(en, "ko") 로 사전+MT 폴백을 거친다.
+    한국어 외 5개 언어는 항상 i18n.translate(en, lang) 로 Google MT.
+    EN 셀은 원문 그대로.
+    """
+    en_raw = str(en_text or "-")
+    en_safe = _esc(en_raw)
+
+    # KO
+    if ko_override is not None:
+        ko_safe = _esc(ko_override)
+    else:
+        ko_safe = _esc(i18n.translate(en_raw, "ko"))
+
+    parts = [f'<span class="ml" data-lang="ko" style="display:none">{ko_safe}</span>']
+    parts.append(f'<span class="ml" data-lang="en" style="">{en_safe}</span>')
+    for lang in ("es", "zh", "ja", "fr", "de"):
+        translated = i18n.translate(en_raw, lang)
+        parts.append(
+            f'<span class="ml" data-lang="{lang}" style="display:none">{_esc(translated)}</span>'
+        )
+    return "".join(parts)
+
+
+def _ml_pair_from_en(en_left: str | None, en_right: str | None,
+                     ko_left: str | None = None, ko_right: str | None = None,
+                     sep: str = " → ") -> str:
+    """`A → B` 형태(주체 → 대상)를 7개 언어로 묶어서 출력."""
+    en_l = str(en_left or "-")
+    en_r = str(en_right or "-")
+    ko_l = ko_left if ko_left is not None else i18n.translate(en_l, "ko")
+    ko_r = ko_right if ko_right is not None else i18n.translate(en_r, "ko")
+
+    parts = [
+        f'<span class="ml" data-lang="ko" style="display:none">{_esc(ko_l)}{_esc(sep)}{_esc(ko_r)}</span>',
+        f'<span class="ml" data-lang="en" style="">{_esc(en_l)}{_esc(sep)}{_esc(en_r)}</span>',
+    ]
+    for lang in ("es", "zh", "ja", "fr", "de"):
+        l = i18n.translate(en_l, lang)
+        r = i18n.translate(en_r, lang)
+        parts.append(
+            f'<span class="ml" data-lang="{lang}" style="display:none">'
+            f'{_esc(l)}{_esc(sep)}{_esc(r)}</span>'
+        )
+    return "".join(parts)
+
+
 class BriefingService:
     def __init__(self, db: Session):
         self.db = db
@@ -276,13 +371,29 @@ class BriefingService:
         incident_pairs = get_all_incidents(self.db)
         incidents = [inc for inc, _ in incident_pairs]
 
-        # Stats
-        actor_ko = Counter([translate_actor(i.actor) for i in incidents if i.actor])
+        # Stats — 영문 Counter 를 만든 뒤 i18n 으로 언어별 묶음을 산출
         actor_en = Counter([i.actor for i in incidents if i.actor])
-        means_ko = Counter([translate_means(i.means) for i in incidents if i.means])
         means_en = Counter([i.means for i in incidents if i.means])
-        loc_ko = Counter([translate_location(i.location_name) for i in incidents if i.location_name])
         loc_en = Counter([i.location_name for i in incidents if i.location_name])
+
+        def _localize_counter(counter: Counter, ko_translator, lang: str) -> Counter:
+            """한국어는 사전 기반 함수(ko_translator), 그 외는 i18n.translate."""
+            out: Counter = Counter()
+            for raw, n in counter.items():
+                if not raw:
+                    continue
+                if lang == "ko":
+                    label = ko_translator(raw)
+                elif lang == "en":
+                    label = raw
+                else:
+                    label = i18n.translate(raw, lang)
+                out[label] += n
+            return out
+
+        actor_by_lang = {l: _localize_counter(actor_en, translate_actor, l) for l in ALL_LANGS}
+        means_by_lang = {l: _localize_counter(means_en, translate_means, l) for l in ALL_LANGS}
+        loc_by_lang = {l: _localize_counter(loc_en, translate_location, l) for l in ALL_LANGS}
 
         iran_attacks = sum(1 for i in incidents if get_actor_side(i.actor or "") == "iran")
         us_attacks = sum(1 for i in incidents if get_actor_side(i.actor or "") == "us_israel")
@@ -302,6 +413,30 @@ class BriefingService:
             for l, n in LANG_NAMES.items()
         )
 
+        # Font size selector options (작게/보통/크게/아주크게)
+        # value 는 CSS --fs 값과 직접 매핑됨
+        fs_options = [
+            ("0.85", "fs_small"),
+            ("1",    "fs_normal"),
+            ("1.18", "fs_large"),
+            ("1.4",  "fs_xlarge"),
+        ]
+        fs_opts = "".join(
+            f'<option value="{val}"{" selected" if val == "1" else ""}>'
+            + "".join(
+                f'<span data-lang="{lng}">{LABELS[key][lng]}</span>'
+                for lng in ALL_LANGS
+            ) + '</option>'
+            for val, key in fs_options
+        )
+        # <option> 안의 <span> 은 브라우저가 무시하므로, 실제 텍스트로 한 번 더 표기.
+        # 가장 짧은 영문 라벨로 대체한 단순 옵션을 다시 만든다.
+        fs_opts = "".join(
+            f'<option value="{val}"{" selected" if val == "1" else ""} '
+            f'data-fs-key="{key}">{LABELS[key]["en"]}</option>'
+            for val, key in fs_options
+        )
+
         # Build incident cards
         cards_html = ""
         for inc, doc in incident_pairs[:30]:
@@ -312,50 +447,48 @@ class BriefingService:
             if doc and doc.published_at:
                 pub_date = doc.published_at.strftime("%Y-%m-%d %H:%M UTC")
 
-            actor_k = _esc(translate_actor(inc.actor))
-            actor_e = _esc(inc.actor or "-")
-            target_k = _esc(translate_actor(inc.target_actor))
-            target_e = _esc(inc.target_actor or "-")
-            loc_k = _esc(translate_location(inc.location_name))
-            loc_e = _esc(inc.location_name or "-")
-            means_k = _esc(translate_means(inc.means))
-            means_e = _esc(inc.means or "-")
-            damage_k = _esc(translate_sentence(inc.damage_summary))
-            damage_e = _esc(inc.damage_summary or "-")
-            tact_k = _esc(translate_sentence(inc.tactical_assessment))
-            tact_e = _esc(inc.tactical_assessment or "-")
-            strat_k = _esc(translate_sentence(inc.strategic_assessment))
-            strat_e = _esc(inc.strategic_assessment or "-")
+            # 한국어는 기존 사전(사람/조직/장소/수단) 우선, 그 외 언어는 i18n로 MT.
+            actor_en = inc.actor or "-"
+            target_en = inc.target_actor or "-"
+            loc_en = inc.location_name or "-"
+            means_en = inc.means or "-"
+            damage_en = inc.damage_summary or "-"
+            tact_en = inc.tactical_assessment or "-"
+            strat_en = inc.strategic_assessment or "-"
+            title_en = doc.title if doc else "-"
+            pub_en = doc.publisher if doc else "-"
+
+            actor_ko_dict = translate_actor(inc.actor)
+            target_ko_dict = translate_actor(inc.target_actor)
+            loc_ko_dict = translate_location(inc.location_name)
+            means_ko_dict = translate_means(inc.means)
+            # 긴 문장은 사전이 영어를 많이 남길 수 있어 i18n.translate(., "ko") 가 필요
+            # (i18n 내부에서 사전→MT 폴백을 자동 결정)
+            damage_ko = i18n.translate(damage_en, "ko")
+            tact_ko = i18n.translate(tact_en, "ko")
+            strat_ko = i18n.translate(strat_en, "ko")
+            title_ko = i18n.translate(title_en, "ko")
+
             sev = classify_damage_severity(inc.damage_summary)
             url = _esc(doc.url if doc else "#")
-            pub = _esc(doc.publisher if doc else "-")
-            title_k = _esc(translate_title(doc.title) if doc else "-")
-            title_e = _esc(doc.title if doc else "-")
-
-            def _ml(ko: str, en: str) -> str:
-                """Generate multilingual spans. EN is default visible; KO and others hidden."""
-                out = f'<span class="ml" data-lang="ko" style="display:none">{ko}</span>'
-                for lang in ALL_LANGS[1:]:  # en, es, zh, ja, fr, de
-                    display = "" if lang == "en" else "none"
-                    out += f'<span class="ml" data-lang="{lang}" style="display:{display}">{en}</span>'
-                return out
+            pub_safe = _esc(pub_en)
 
             cards_html += f"""
             <div class="inc-card {side_css}">
-                <div class="inc-title">{dot} {_ml(f"{actor_k} → {target_k}", f"{actor_e} → {target_e}")}</div>
+                <div class="inc-title">{dot} {_ml_pair_from_en(actor_en, target_en, ko_left=actor_ko_dict, ko_right=target_ko_dict)}</div>
                 <div class="inc-meta">
                     {_lbl('date')}: {_esc(pub_date)} &nbsp;|&nbsp;
-                    {_lbl('location')}: {_ml(loc_k, loc_e)} &nbsp;|&nbsp;
-                    {_lbl('means')}: {_ml(means_k, means_e)} &nbsp;|&nbsp;
+                    {_lbl('location')}: {_ml_from_en(loc_en, ko_override=loc_ko_dict)} &nbsp;|&nbsp;
+                    {_lbl('means')}: {_ml_from_en(means_en, ko_override=means_ko_dict)} &nbsp;|&nbsp;
                     {_lbl('severity')}: {_esc(sev)} &nbsp;|&nbsp;
                     {_lbl('confidence')}: {inc.confidence:.2f} &nbsp;|&nbsp;
                     {_lbl('status')}: {_esc(inc.verified_status)}
                 </div>
-                <div class="inc-field"><span class="inc-label">{_lbl('damage')}:</span> {_ml(damage_k, damage_e)}</div>
-                <div class="inc-field"><span class="inc-label">{_lbl('tactical')}:</span> {_ml(tact_k, tact_e)}</div>
-                <div class="inc-field"><span class="inc-label">{_lbl('strategic')}:</span> {_ml(strat_k, strat_e)}</div>
+                <div class="inc-field"><span class="inc-label">{_lbl('damage')}:</span> {_ml_from_en(damage_en, ko_override=damage_ko)}</div>
+                <div class="inc-field"><span class="inc-label">{_lbl('tactical')}:</span> {_ml_from_en(tact_en, ko_override=tact_ko)}</div>
+                <div class="inc-field"><span class="inc-label">{_lbl('strategic')}:</span> {_ml_from_en(strat_en, ko_override=strat_ko)}</div>
                 <div class="inc-source">
-                    {_lbl('source')}: <a href="{url}" target="_blank" rel="noopener">{_ml(f'{pub}: {title_k}', f'{pub}: {title_e}')}</a>
+                    {_lbl('source')}: <a href="{url}" target="_blank" rel="noopener">{pub_safe}: {_ml_from_en(title_en, ko_override=title_ko)}</a>
                 </div>
             </div>
             """
@@ -389,12 +522,14 @@ class BriefingService:
     --radius: 14px;
     --shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.04);
     --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK SC", "Noto Sans CJK JP", sans-serif;
+    /* 폰트 스케일 — JS 로 0.85/1/1.18/1.4 사이 전환 */
+    --fs: 1;
 }}
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{
     font-family: var(--font);
     background: var(--bg); color: var(--text);
-    line-height: 1.6; font-size: 14px;
+    line-height: 1.6; font-size: calc(14px * var(--fs));
     -webkit-font-smoothing: antialiased;
 }}
 .wrap {{ max-width: 960px; margin: 0 auto; padding: 28px 32px; }}
@@ -407,7 +542,7 @@ body {{
     flex-wrap: wrap; gap: 14px;
 }}
 .brief-header h1 {{
-    font-size: 20px; font-weight: 700; letter-spacing: -0.01em;
+    font-size: calc(20px * var(--fs)); font-weight: 700; letter-spacing: -0.01em;
     display: flex; align-items: center; gap: 10px;
     color: var(--text);
 }}
@@ -418,9 +553,9 @@ body {{
 .brief-controls {{
     display: flex; align-items: center; gap: 10px;
 }}
-.lang-select {{
+.lang-select, .fs-select {{
     font-family: var(--font);
-    font-size: 13px; font-weight: 500;
+    font-size: calc(13px * var(--fs)); font-weight: 500;
     background: var(--surface-2); color: var(--text);
     border: 1px solid var(--border); border-radius: 999px;
     padding: 7px 14px; cursor: pointer;
@@ -431,19 +566,19 @@ body {{
     padding-right: 30px;
 }}
 .back-link {{
-    font-size: 13px; font-weight: 500; color: var(--accent);
+    font-size: calc(13px * var(--fs)); font-weight: 500; color: var(--accent);
     text-decoration: none; padding: 7px 14px; border-radius: 999px;
     border: 1px solid rgba(0,113,227,0.15); background: var(--accent-soft);
     transition: all 0.15s;
 }}
 .back-link:hover {{ background: var(--accent); color: white; }}
 .gen-time {{
-    font-size: 12px; color: var(--text-dim); margin-top: 6px;
+    font-size: calc(12px * var(--fs)); color: var(--text-dim); margin-top: 6px;
 }}
 /* War Day */
 .war-day-badge {{
     display: inline-flex; align-items: center; gap: 8px;
-    font-size: 16px; font-weight: 700;
+    font-size: calc(16px * var(--fs)); font-weight: 700;
     background: linear-gradient(135deg, var(--danger) 0%, var(--warning) 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -455,7 +590,7 @@ body {{
     box-shadow: var(--shadow);
 }}
 .summary-card h2 {{
-    font-size: 15px; font-weight: 600; color: var(--text);
+    font-size: calc(15px * var(--fs)); font-weight: 600; color: var(--text);
     margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
 }}
 .summary-grid {{
@@ -466,22 +601,22 @@ body {{
     background: var(--surface-2); border: 1px solid var(--border);
     border-radius: 10px; padding: 12px 14px; text-align: center;
 }}
-.sum-tile .sv {{ font-size: 24px; font-weight: 700; }}
-.sum-tile .sl {{ font-size: 11px; color: var(--text-muted); margin-top: 2px; }}
+.sum-tile .sv {{ font-size: calc(24px * var(--fs)); font-weight: 700; }}
+.sum-tile .sl {{ font-size: calc(11px * var(--fs)); color: var(--text-muted); margin-top: 2px; }}
 .sum-tile.iran .sv {{ color: var(--danger); }}
 .sum-tile.us .sv {{ color: var(--accent); }}
 .sum-tile.total .sv {{ color: var(--text); }}
 .sum-list {{
-    font-size: 12.5px; color: var(--text-soft); line-height: 1.7;
+    font-size: calc(12.5px * var(--fs)); color: var(--text-soft); line-height: 1.7;
 }}
 .sum-list-label {{
-    font-weight: 600; color: var(--text-muted); font-size: 11px;
+    font-weight: 600; color: var(--text-muted); font-size: calc(11px * var(--fs));
     text-transform: uppercase; letter-spacing: 0.03em;
     margin-top: 10px; margin-bottom: 3px;
 }}
 /* Section title */
 .section-title {{
-    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    font-size: calc(13px * var(--fs)); font-weight: 600; color: var(--text-muted);
     text-transform: uppercase; letter-spacing: 0.03em;
     margin: 0 0 14px 2px;
 }}
@@ -498,22 +633,22 @@ body {{
 .inc-card.us {{ border-left-color: var(--accent); }}
 .inc-card.other {{ border-left-color: var(--warning); }}
 .inc-title {{
-    font-size: 15px; font-weight: 600; margin-bottom: 6px;
+    font-size: calc(15px * var(--fs)); font-weight: 600; margin-bottom: 6px;
 }}
 .inc-card.iran .inc-title {{ color: var(--danger); }}
 .inc-card.us .inc-title {{ color: var(--accent); }}
 .inc-card.other .inc-title {{ color: #b86900; }}
 .inc-meta {{
-    font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px;
+    font-size: calc(11.5px * var(--fs)); color: var(--text-muted); margin-bottom: 10px;
     line-height: 1.6;
 }}
 .inc-field {{
-    font-size: 13px; color: var(--text-soft); margin-bottom: 5px;
+    font-size: calc(13px * var(--fs)); color: var(--text-soft); margin-bottom: 5px;
     line-height: 1.55;
 }}
 .inc-label {{ font-weight: 600; color: var(--text); }}
 .inc-source {{
-    font-size: 11.5px; color: var(--text-dim); margin-top: 10px;
+    font-size: calc(11.5px * var(--fs)); color: var(--text-dim); margin-top: 10px;
     padding-top: 8px; border-top: 1px solid var(--border);
 }}
 .inc-source a {{ color: var(--accent); text-decoration: none; }}
@@ -539,6 +674,9 @@ body {{
             <select class="lang-select" id="langSelect" aria-label="Language">
                 {lang_opts}
             </select>
+            <select class="fs-select" id="fsSelect" aria-label="Font size" title="{LABELS['font_size']['en']}">
+                {fs_opts}
+            </select>
             <a class="back-link" href="/">{_lbl('back')}</a>
         </div>
     </div>
@@ -563,18 +701,24 @@ body {{
         <div class="sum-list">
             <div class="sum-list-label">{_lbl('top_actors')}</div>
             <div>
-                <span class="ml" data-lang="ko">{_top5(actor_ko)}</span>
-                {"".join(f'<span class="ml" data-lang="{l}" style="display:none">{_top5(actor_en)}</span>' for l in ALL_LANGS[1:])}
+                {"".join(
+                    f'<span class="ml" data-lang="{l}" style="display:{"" if l == "en" else "none"}">{_esc(_top5(actor_by_lang[l]))}</span>'
+                    for l in ALL_LANGS
+                )}
             </div>
             <div class="sum-list-label">{_lbl('top_means')}</div>
             <div>
-                <span class="ml" data-lang="ko">{_top5(means_ko)}</span>
-                {"".join(f'<span class="ml" data-lang="{l}" style="display:none">{_top5(means_en)}</span>' for l in ALL_LANGS[1:])}
+                {"".join(
+                    f'<span class="ml" data-lang="{l}" style="display:{"" if l == "en" else "none"}">{_esc(_top5(means_by_lang[l]))}</span>'
+                    for l in ALL_LANGS
+                )}
             </div>
             <div class="sum-list-label">{_lbl('top_locations')}</div>
             <div>
-                <span class="ml" data-lang="ko">{_top5(loc_ko)}</span>
-                {"".join(f'<span class="ml" data-lang="{l}" style="display:none">{_top5(loc_en)}</span>' for l in ALL_LANGS[1:])}
+                {"".join(
+                    f'<span class="ml" data-lang="{l}" style="display:{"" if l == "en" else "none"}">{_esc(_top5(loc_by_lang[l]))}</span>'
+                    for l in ALL_LANGS
+                )}
             </div>
         </div>
     </div>
@@ -584,12 +728,54 @@ body {{
 </div>
 
 <script>
-document.getElementById('langSelect').addEventListener('change', function() {{
-    const lang = this.value;
-    document.querySelectorAll('.ml').forEach(el => {{
-        el.style.display = el.dataset.lang === lang ? '' : 'none';
-    }});
-}});
+(function() {{
+    // 폰트 사이즈 라벨 — 언어별 텍스트를 옵션에 매핑
+    const FS_LABELS = {{
+        "fs_small":  {{"ko":"작게","en":"Small","es":"Pequeño","zh":"小","ja":"小","fr":"Petit","de":"Klein"}},
+        "fs_normal": {{"ko":"보통","en":"Normal","es":"Normal","zh":"标准","ja":"標準","fr":"Normal","de":"Normal"}},
+        "fs_large":  {{"ko":"크게","en":"Large","es":"Grande","zh":"大","ja":"大","fr":"Grand","de":"Groß"}},
+        "fs_xlarge": {{"ko":"아주 크게","en":"Extra large","es":"Muy grande","zh":"超大","ja":"特大","fr":"Très grand","de":"Sehr groß"}}
+    }};
+    function applyLang(lang) {{
+        document.querySelectorAll('.ml').forEach(el => {{
+            el.style.display = el.dataset.lang === lang ? '' : 'none';
+        }});
+        // 폰트 크기 옵션 라벨 다국어 갱신
+        document.querySelectorAll('#fsSelect option').forEach(opt => {{
+            const k = opt.dataset.fsKey;
+            if (k && FS_LABELS[k] && FS_LABELS[k][lang]) {{
+                opt.textContent = FS_LABELS[k][lang];
+            }}
+        }});
+        try {{ localStorage.setItem('osintLang', lang); }} catch (e) {{}}
+    }}
+    function applyFs(scale) {{
+        document.documentElement.style.setProperty('--fs', String(scale));
+        try {{ localStorage.setItem('osintFs', String(scale)); }} catch (e) {{}}
+    }}
+
+    const langSel = document.getElementById('langSelect');
+    const fsSel = document.getElementById('fsSelect');
+
+    // localStorage 복원
+    try {{
+        const savedLang = localStorage.getItem('osintLang');
+        if (savedLang) {{
+            langSel.value = savedLang;
+        }}
+        const savedFs = localStorage.getItem('osintFs');
+        if (savedFs) {{
+            fsSel.value = savedFs;
+        }}
+    }} catch (e) {{}}
+
+    // 초기 적용
+    applyLang(langSel.value);
+    applyFs(fsSel.value);
+
+    langSel.addEventListener('change', function() {{ applyLang(this.value); }});
+    fsSel.addEventListener('change',  function() {{ applyFs(this.value); }});
+}})();
 </script>
 </body>
 </html>"""
@@ -597,4 +783,9 @@ document.getElementById('langSelect').addEventListener('change', function() {{
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(html, encoding="utf-8")
+        # 번역 캐시 영구 저장 (이번 빌드에서 새로 추가된 항목)
+        try:
+            i18n.save_cache()
+        except Exception:
+            pass
         return str(path)
