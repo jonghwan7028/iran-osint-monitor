@@ -41,12 +41,13 @@ services:
           property: connectionString
 
   # ────────────────────────────────────────────────────────────────────
-  # 2) 1시간마다 수집·분석 파이프라인 자동 실행
+  # 2) 6시간마다 수집·분석 파이프라인 자동 실행
+  #    (이전엔 매시간이었으나 동일 사건의 다중 보도 누적이 심해 빈도 완화)
   # ────────────────────────────────────────────────────────────────────
   - type: cron
-    name: iran-osint-hourly-ingest
+    name: iran-osint-6hourly-ingest
     env: docker
-    schedule: "0 * * * *"   # 매시 정각
+    schedule: "0 */6 * * *"   # UTC 00/06/12/18시 정각 → 한국 09/15/21/03시
     # NOTE: Render 의 dockerCommand 는 복잡한 sh -c '...' 인라인을 안전하게 파싱하지 못한다
     # (전체 문자열을 단일 실행 파일로 취급해 exit 127 이 발생). 따라서 별도 스크립트로 분리.
     dockerCommand: sh /app/scripts/cron_ingest.sh

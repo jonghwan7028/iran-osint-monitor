@@ -700,3 +700,56 @@ def seed_data(request: Request, db: Session = Depends(get_db)):
     set_last_result(final)
     update_status(state="completed", step="완료", message=final["message"])
     return final
+
+
+@router.post("/pipeline/reset")
+def reset_pipeline(request: Request, db: Session = Depends(get_db)):
+    """⚠️ 위험: 모든 incident/document 를 삭제한 뒤 검증된 시드(VERIFIED_EVENTS)만 재적재.
+    누적된 cron 노이즈로 DB 가 지저분해진 경우 한 번에 깨끗한 상태로 복구하는 용도.
+
+    호출 예: curl -X POST -H 'X-Admin-Token: $ADMIN_TOKEN' \\
+              https://iran-osint-web.onrender.com/pipeline/reset
+
+    필요한 권한:
+      - PUBLIC_MODE=1 환경(=배포)에서는 X-Admin-Token 헤더 필수
+      - 로컬은 인증 없이 통과
+    """
+    require_admin(request)
+
+    from app.models.entities import Incident, SourceDocument, PageView, Feedback  # noqa: F401
+    from app.services.seed_data import seed_sample_data
+    from sqlalchemy import func
+
+    update_status(state="running", step="기존 데이터 삭제 중", message="incident/document 전체 삭제…")
+    before_inc = db.query(func.count(Incident.id)).scalar() or 0
+    before_doc = db.query(func.count(SourceDocument.id)).scalar() or 0
+
+    # 외래키 의존: Incident → SourceDocument 순으로 삭제
+    db.query(Incident).delete(synchronize_session=False)
+    db.query(SourceDocument).delete(synchronize_session=False)
+    db.commit()
+
+    update_status(state="running", step="검증 시드 재적재 중", message="VERIFIED_EVENTS 다시 삽입…")
+    seed_result = seed_sample_data(db, force=True)
+
+    update_status(state="running", step="지도 생성 중", message="시드만으로 지도 재생성…")
+    MapService(db).build_map()
+
+    update_status(state="running", step="브리핑 작성 중", message="시드만으로 브리핑 재생성…")
+    BriefingService(db).build_daily_html()
+
+    metrics = build_dashboard_metrics(db)
+    final = {
+        "status": "ok",
+        "message": (
+            f"DB 재설정 완료. 삭제: 사건 {before_inc}건, 문서 {before_doc}건 → "
+            f"시드 적재: 사건 {seed_result.get('incidents_inserted', 0)}건, "
+            f"문서 {seed_result.get('documents_inserted', 0)}건"
+        ),
+        "deleted": {"incidents": before_inc, "documents": before_doc},
+        "seeded": seed_result,
+        "totals": metrics,
+    }
+    set_last_result(final)
+    update_status(state="completed", step="완료", message=final["message"])
+    return final

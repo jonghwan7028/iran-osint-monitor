@@ -20,6 +20,10 @@ class SourceDocument(Base):
     query_used: Mapped[str | None] = mapped_column(String(300), nullable=True)
     raw_text: Mapped[str] = mapped_column(Text, nullable=False)
     content_hash: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    # 사건-수준 dedup: 같은 사건을 다른 출판사가 보도해도 묶이도록 한다.
+    # 키 = sha256( normalize(title 앞 8단어) + "|" + UTC YYYY-MM-DD ).
+    # nullable: 기존 행을 그대로 두기 위함(마이그레이션 시 NULL 허용 → 새 인서트만 채움).
+    event_signature: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     source_reliability: Mapped[float] = mapped_column(Float, default=0.5)
     ingestion_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
