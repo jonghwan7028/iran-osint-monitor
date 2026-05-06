@@ -280,13 +280,23 @@ class BriefingService:
         incident_pairs = get_all_incidents(self.db)
         incidents = [inc for inc, _ in incident_pairs]
 
-        # Stats
-        actor_ko = Counter([translate_actor(i.actor) for i in incidents if i.actor])
-        actor_en = Counter([i.actor for i in incidents if i.actor])
-        means_ko = Counter([translate_means(i.means) for i in incidents if i.means])
-        means_en = Counter([i.means for i in incidents if i.means])
-        loc_ko = Counter([translate_location(i.location_name) for i in incidents if i.location_name])
-        loc_en = Counter([i.location_name for i in incidents if i.location_name])
+        # Stats — 7개 언어별 카운터 생성
+        actor_counters: dict[str, Counter] = {}
+        means_counters: dict[str, Counter] = {}
+        loc_counters: dict[str, Counter] = {}
+        for lang in ALL_LANGS:
+            if lang == "en":
+                actor_counters[lang] = Counter([i.actor for i in incidents if i.actor])
+                means_counters[lang] = Counter([i.means for i in incidents if i.means])
+                loc_counters[lang] = Counter([i.location_name for i in incidents if i.location_name])
+            elif lang == "ko":
+                actor_counters[lang] = Counter([translate_actor(i.actor) for i in incidents if i.actor])
+                means_counters[lang] = Counter([translate_means(i.means) for i in incidents if i.means])
+                loc_counters[lang] = Counter([translate_location(i.location_name) for i in incidents if i.location_name])
+            else:
+                actor_counters[lang] = Counter([translate_actor_ml(i.actor, lang) for i in incidents if i.actor])
+                means_counters[lang] = Counter([translate_means_ml(i.means, lang) for i in incidents if i.means])
+                loc_counters[lang] = Counter([translate_location_ml(i.location_name, lang) for i in incidents if i.location_name])
 
         iran_attacks = sum(1 for i in incidents if get_actor_side(i.actor or "") == "iran")
         us_attacks = sum(1 for i in incidents if get_actor_side(i.actor or "") == "us_israel")
@@ -599,18 +609,15 @@ body {{
         <div class="sum-list">
             <div class="sum-list-label">{_lbl('top_actors')}</div>
             <div>
-                <span class="ml" data-lang="ko">{_top5(actor_ko)}</span>
-                {"".join(f'<span class="ml" data-lang="{l}" style="display:none">{_top5(actor_en)}</span>' for l in ALL_LANGS[1:])}
+                {"".join(f'<span class="ml" data-lang="{l}" style="display:{"" if l == "en" else "none"}">{_top5(actor_counters[l])}</span>' for l in ALL_LANGS)}
             </div>
             <div class="sum-list-label">{_lbl('top_means')}</div>
             <div>
-                <span class="ml" data-lang="ko">{_top5(means_ko)}</span>
-                {"".join(f'<span class="ml" data-lang="{l}" style="display:none">{_top5(means_en)}</span>' for l in ALL_LANGS[1:])}
+                {"".join(f'<span class="ml" data-lang="{l}" style="display:{"" if l == "en" else "none"}">{_top5(means_counters[l])}</span>' for l in ALL_LANGS)}
             </div>
             <div class="sum-list-label">{_lbl('top_locations')}</div>
             <div>
-                <span class="ml" data-lang="ko">{_top5(loc_ko)}</span>
-                {"".join(f'<span class="ml" data-lang="{l}" style="display:none">{_top5(loc_en)}</span>' for l in ALL_LANGS[1:])}
+                {"".join(f'<span class="ml" data-lang="{l}" style="display:{"" if l == "en" else "none"}">{_top5(loc_counters[l])}</span>' for l in ALL_LANGS)}
             </div>
         </div>
     </div>

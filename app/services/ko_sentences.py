@@ -171,6 +171,11 @@ SENTENCE_KO: dict[str, str] = {
     "Saturation attack nearly exhausted northern Iron Dome battery magazines.": "포화 공격이 북부 아이언돔 배터리 탄약고를 거의 소진함.",
     "Hezbollah signals ability to sustain high-intensity strikes indefinitely complicating Israeli strategic calculus.": "헤즈볼라가 고강도 공격의 무기한 지속 능력을 과시하며 이스라엘의 전략적 판단을 복잡하게 만듦.",
 
+    # === 동적 수집 사건용 일반 평가문 ===
+    "Likely intended to degrade military operational capability or signal deterrence.": "군사 작전 능력을 약화시키거나 억제 신호를 보내려는 의도로 보임.",
+    "Likely intended to disrupt military activity or signaling.": "군사 활동이나 신호 전달을 교란하려는 의도로 보임.",
+    "Likely linked to coercive diplomacy, deterrence signaling, or escalation management.": "강압 외교, 억제 신호, 또는 확전 관리와 관련된 것으로 보임.",
+
     # Event 33: Iran reopens Strait of Hormuz
     "Hormuz reopens; oil prices fall 8% to $118/bbl; first offensive pause since Feb 28": "호르무즈 재개항; 유가 8% 하락해 배럴당 118달러; 2월 28일 이후 첫 공격 중단",
     "Short pause allows both sides to rearm reconstitute and evaluate ceasefire framework.": "단기 중단이 양측이 재무장, 재정비하고 휴전 체계를 평가할 수 있게 함.",
