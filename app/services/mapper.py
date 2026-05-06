@@ -492,10 +492,4 @@ class MapService:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(html, encoding="utf-8")
-        # 한국어 팝업/툴팁 빌드 중 새로 추가된 번역을 영구 캐시
-        try:
-            from app.services import i18n
-            i18n.save_cache()
-        except Exception:
-            pass
         return str(path)

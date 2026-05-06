@@ -1,17 +1,23 @@
-# Render Blueprint — Iran-US OSINT Monitor (v14-noGPT)
+# Render Blueprint — Iran-US OSINT Monitor (v20d)
+# ──────────────────────────────────────────────────────────
 # 사용법:
-#   1. 이 저장소를 GitHub 에 푸시
+#   1. 이 저장소를 GitHub에 푸시
 #   2. Render 대시보드 → New → Blueprint → 저장소 선택
-#   3. Render 가 이 파일을 읽어 자동으로 Web + Postgres + Cron 2종을 생성한다
+#   3. Render가 이 파일을 읽어 Web + Postgres + Cron 2종을 자동 생성
 #
 # 필수 환경변수 (Render 대시보드에서 수동 설정):
-#   - ADMIN_TOKEN      : 임의의 랜덤 문자열 (cron 이 /pipeline/run 호출 시 사용)
+#   - ADMIN_TOKEN      : 관리자 인증 토큰 (예: osint2026monitor)
 #   - WEB_URL          : 웹 서비스 URL (예: https://iran-osint-web.onrender.com)
 #
-# 자동 설정 (render.yaml 이 연결):
+# 자동 설정 (render.yaml이 연결):
 #   - DATABASE_URL     : Postgres 인스턴스에서 자동 주입
 #   - PUBLIC_MODE      : "1" (관리자 버튼 UI 숨김)
-#   - PORT             : Render 가 자동 할당
+#   - PORT             : Render가 자동 할당
+#
+# 아키텍처:
+#   - 웹 서비스에 APScheduler 내장 → 6시간마다 파이프라인 자동 실행
+#   - Cron 서비스는 keep-alive(슬립 방지)와 일별 refresh 용도
+# ──────────────────────────────────────────────────────────
 databases:
   - name: iran-osint-db
     plan: free   # 무료 티어 (1GB). 장기 운영 시 starter ($7/mo) 권장
@@ -20,7 +26,9 @@ databases:
 
 services:
   # ────────────────────────────────────────────────────────────────────
-  # 1) 메인 웹 서비스 (FastAPI)
+  # 1) 메인 웹 서비스 (FastAPI + APScheduler 내장)
+  #    APScheduler가 6시간 간격으로 파이프라인을 자동 실행한다.
+  #    PIPELINE_INTERVAL_HOURS 환경변수로 간격 조정 가능 (기본: 6).
   # ────────────────────────────────────────────────────────────────────
   - type: web
     name: iran-osint-web
@@ -33,40 +41,67 @@ services:
         value: "1"
       - key: SITE_TITLE
         value: "이란-미국 전쟁 OSINT 실시간 모니터"
+      - key: PIPELINE_INTERVAL_HOURS
+        value: "6"
       - key: ADMIN_TOKEN
-        sync: false    # Render 대시보드에서 직접 입력. `openssl rand -hex 32` 로 생성 권장
+        sync: false    # Render 대시보드에서 직접 입력
       - key: DATABASE_URL
         fromDatabase:
           name: iran-osint-db
           property: connectionString
 
   # ────────────────────────────────────────────────────────────────────
-  # 2) 6시간마다 수집·분석 파이프라인 자동 실행
-  #    (이전엔 매시간이었으나 동일 사건의 다중 보도 누적이 심해 빈도 완화)
+  # 2) Keep-alive + 수집 트리거 (무료 슬립 방지)
+  #    무료 웹 서비스는 15분 idle 후 슬립되므로, 14분마다 /status를
+  #    호출하여 깨어 있게 유지한다. 동시에 APScheduler가 계속 동작.
   # ────────────────────────────────────────────────────────────────────
   - type: cron
-    name: iran-osint-6hourly-ingest
+    name: iran-osint-keepalive
     env: docker
-    schedule: "0 */6 * * *"   # UTC 00/06/12/18시 정각 → 한국 09/15/21/03시
-    # NOTE: Render 의 dockerCommand 는 복잡한 sh -c '...' 인라인을 안전하게 파싱하지 못한다
-    # (전체 문자열을 단일 실행 파일로 취급해 exit 127 이 발생). 따라서 별도 스크립트로 분리.
-    dockerCommand: sh /app/scripts/cron_ingest.sh
+    plan: free
+    schedule: "*/14 * * * *"   # 14분마다
+    dockerCommand: |
+      sh -c '
+        echo "[keepalive] Pinging web service..."
+        STATUS=$(curl -fsS -o /dev/null -w "%{http_code}" "$WEB_URL/status" --max-time 60 2>&1) || true
+        echo "[keepalive] /status responded: $STATUS"
+        if [ "$STATUS" != "200" ]; then
+          echo "[keepalive] WARNING: Web service may be starting up. Retrying in 30s..."
+          sleep 30
+          curl -fsS -o /dev/null "$WEB_URL/status" --max-time 60 || echo "[keepalive] Retry also failed"
+        fi
+        echo "[keepalive] Done"
+      '
     envVars:
       - key: WEB_URL
         sync: false    # 배포 후 웹 서비스 URL 수동 입력 (예: https://iran-osint-web.onrender.com)
-      - key: ADMIN_TOKEN
-        sync: false
 
   # ────────────────────────────────────────────────────────────────────
-  # 3) 하루 1회 출력물 재생성 (좌표 보정 포함)
+  # 3) 하루 1회 출력물 재생성 + 검증 갱신
+  #    좌표 보정, 검증 재점수, 지도/브리핑 재생성
   # ────────────────────────────────────────────────────────────────────
   - type: cron
     name: iran-osint-daily-refresh
     env: docker
+    plan: free
     schedule: "0 0 * * *"   # 매일 00:00 UTC (한국 09:00)
-    # NOTE: Render 의 dockerCommand 는 복잡한 sh -c '...' 인라인을 안전하게 파싱하지 못한다
-    # (전체 문자열을 단일 실행 파일로 취급해 exit 127 이 발생). 따라서 별도 스크립트로 분리.
-    dockerCommand: sh /app/scripts/cron_refresh.sh
+    dockerCommand: |
+      sh -c '
+        echo "[daily-refresh] Starting..."
+        # 먼저 웹 서비스를 깨운다
+        curl -fsS -o /dev/null "$WEB_URL/status" --max-time 90 || {
+          echo "[daily-refresh] Web service waking up, waiting 45s..."
+          sleep 45
+        }
+        # refresh 실행
+        RESULT=$(curl -fsS -X POST "$WEB_URL/pipeline/refresh" \
+          -H "X-Admin-Token: $ADMIN_TOKEN" --max-time 300 2>&1) || {
+          echo "[daily-refresh] FAILED: $RESULT"
+          exit 1
+        }
+        echo "[daily-refresh] Result: $RESULT"
+        echo "[daily-refresh] Done"
+      '
     envVars:
       - key: WEB_URL
         sync: false    # 배포 후 웹 서비스 URL 수동 입력

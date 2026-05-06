@@ -112,35 +112,6 @@ class GoogleNewsRSSIngestor:
         normalized_publisher = re.sub(r"[^a-z0-9]+", "", (publisher or "").lower())
         return f"{normalized_title}::{normalized_publisher}"[:500]
 
-    def _event_signature(self, title: str, published_at: datetime | None) -> str:
-        """사건-수준 dedup 키: 제목 첫 6개 의미 단어(stopword·매체명 제거) + UTC YYYY-MM-DD.
-        같은 사건을 다른 출판사가 다른 문구로 보도해도 묶이도록 한다.
-        6단어로 잡은 이유: 뉴스 헤드라인의 핵심 사실은 보통 첫 5~6단어에 압축되며,
-        그 이후엔 매체명·attribution(report/says/sources) 등 변동이 큰 토큰이 자주 붙는다.
-        """
-        normalized = re.sub(r"[^a-z0-9 ]+", " ", (title or "").lower())
-        words = [w for w in normalized.split() if w and len(w) > 1]
-        # 흔한 stopword + 매체명·보도 동사 제거 — 'iran/israel'처럼 핵심 명사는 보존
-        STOP = {
-            # 영어 stopword
-            "the", "a", "an", "in", "on", "at", "of", "to", "for", "and", "or",
-            "by", "with", "as", "is", "are", "was", "were", "from", "after",
-            "amid", "into", "over", "off", "out", "but", "vs", "via",
-            # 매체명 (제목 끝에 자주 붙는 형태)
-            "reuters", "ap", "bbc", "cnn", "nyt", "reports", "report", "says",
-            "said", "sources", "guardian", "wsj", "afp", "ft", "axios", "bloomberg",
-            "newsweek", "telegraph", "haaretz", "nbc", "cbs", "abc",
-        }
-        signal = [w for w in words if w not in STOP][:6]
-        prefix = " ".join(signal) if signal else " ".join(words[:6])
-        if published_at:
-            if published_at.tzinfo is None:
-                published_at = published_at.replace(tzinfo=timezone.utc)
-            day_key = published_at.astimezone(timezone.utc).strftime("%Y-%m-%d")
-        else:
-            day_key = "unknown"
-        return sha256_text(f"{prefix}|{day_key}")[:32]
-
     def _dedupe_key(self, canonical_url: str, title: str, publisher: str, published_at: datetime | None, raw_text: str) -> tuple[str, str]:
         day_key = published_at.strftime("%Y-%m-%d") if published_at else "unknown"
         title_key = self._normalized_title_key(title, publisher)
@@ -151,18 +122,12 @@ class GoogleNewsRSSIngestor:
         url_key = canonical_url or f"title://{title_key}|{day_key}"
         return url_key, content_key
 
-    def _is_known_document(self, canonical_url: str, content_hash: str | None = None,
-                           title: str | None = None, publisher: str | None = None,
-                           published_at: datetime | None = None,
-                           event_signature: str | None = None) -> bool:
+    def _is_known_document(self, canonical_url: str, content_hash: str | None = None, title: str | None = None, publisher: str | None = None, published_at: datetime | None = None) -> bool:
         clauses = []
         if canonical_url:
             clauses.append(SourceDocument.url == canonical_url)
         if content_hash:
             clauses.append(SourceDocument.content_hash == content_hash)
-        if event_signature:
-            # 사건-수준 매치 — 같은 사건 다른 출판사도 같은 사건으로 인식
-            clauses.append(SourceDocument.event_signature == event_signature)
         if title and publisher and published_at:
             start_of_day = published_at.replace(hour=0, minute=0, second=0, microsecond=0)
             end_of_day = start_of_day + timedelta(days=1)
@@ -278,7 +243,6 @@ class GoogleNewsRSSIngestor:
         fetch_failures = 0
         seen_keys: set[str] = set()
         seen_hashes: set[str] = set()
-        seen_signatures: set[str] = set()  # 사건-수준 dedup (이번 ingest 호출 안에서)
         network_error = False
 
         try:
@@ -330,20 +294,14 @@ class GoogleNewsRSSIngestor:
             canonical_url = canonicalize_url(canonical_url or resolved_url or item["preferred_link"] or item["raw_link"])
             raw_text = raw_text or item["summary"] or item["title"]
             url_key, content_key = self._dedupe_key(canonical_url, item["title"], item["publisher"], item["published_at"], raw_text)
-            event_sig = self._event_signature(item["title"], item["published_at"])
 
-            # 1) 같은 ingest 호출 안의 메모리 dedup
-            if url_key in seen_keys or content_key in seen_hashes or event_sig in seen_signatures:
+            if url_key in seen_keys or content_key in seen_hashes:
                 duplicate_in_feed += 1
                 continue
             seen_keys.add(url_key)
             seen_hashes.add(content_key)
-            seen_signatures.add(event_sig)
 
-            # 2) DB-수준 dedup (이전 cron 실행에서 들어간 동일 사건도 거름)
-            if self._is_known_document(canonical_url, content_key, item["title"],
-                                       item["publisher"], item["published_at"],
-                                       event_signature=event_sig):
+            if self._is_known_document(canonical_url, content_key, item["title"], item["publisher"], item["published_at"]):
                 duplicate_in_db += 1
                 continue
 
@@ -361,7 +319,6 @@ class GoogleNewsRSSIngestor:
                 query_used=item["query"],
                 raw_text=raw_text[:40000],
                 content_hash=content_key,
-                event_signature=event_sig,
                 source_reliability=reliability,
             )
             self.db.add(doc)

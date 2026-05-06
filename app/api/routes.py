@@ -469,14 +469,43 @@ def run_pipeline(request: Request, db: Session = Depends(get_db)):
 @router.post("/pipeline/refresh")
 def refresh_outputs(request: Request, db: Session = Depends(get_db)):
     require_admin(request)
-    update_status(state="running", step="재처리 중", message="좌표 보정 및 출력물 재생성 중입니다.")
+    update_status(state="running", step="재처리 중", message="검증 재평가, 좌표 보정 및 출력물 재생성 중입니다.")
+
+    # 1) 기존 사건의 검증 상태를 현재 로직으로 재평가
+    from app.models.entities import Incident, SourceDocument
+    from app.services.verifier import VerificationService
+    verifier = VerificationService()
+    reverified = 0
+    all_incidents = db.query(Incident).all()
+    for inc in all_incidents:
+        doc = db.query(SourceDocument).filter(SourceDocument.id == inc.document_id).first()
+        if not doc:
+            continue
+        incident_fields = {
+            "actor": inc.actor, "means": inc.means, "target_type": inc.target_type,
+            "location_name": inc.location_name, "damage_summary": inc.damage_summary,
+        }
+        new_conf, new_status = verifier.score(doc, incident_fields)
+        if inc.verified_status != new_status or abs(inc.confidence - new_conf) > 0.01:
+            inc.confidence = new_conf
+            inc.verified_status = new_status
+            inc.is_high_impact = new_conf >= 0.8 and any(
+                k for k in [inc.damage_summary, inc.target_type] if k
+            )
+            reverified += 1
+    db.commit()
+
+    # 2) 좌표 보정
     backfilled = IncidentExtractor(db).backfill_missing_locations()
+
+    # 3) 출력물 재생성
     map_path = MapService(db).build_map()
     brief_path = BriefingService(db).build_daily_html()
     metrics = build_dashboard_metrics(db)
     result = {
         "status": "ok",
-        "message": f"출력물을 재생성했습니다. 좌표보정: {backfilled}건",
+        "message": f"출력물을 재생성했습니다. 재검증: {reverified}건, 좌표보정: {backfilled}건",
+        "reverified": reverified,
         "location_backfilled": backfilled,
         "totals": metrics,
     }
@@ -695,209 +724,6 @@ def seed_data(request: Request, db: Session = Depends(get_db)):
         "status": "ok",
         "message": f"검증 데이터 로드 완료: 문서 {result['documents_inserted']}건, 사건 {result['incidents_inserted']}건",
         "seed_result": result,
-        "totals": metrics,
-    }
-    set_last_result(final)
-    update_status(state="completed", step="완료", message=final["message"])
-    return final
-
-
-class IncidentIn(BaseModel):
-    event_type: str | None = None
-    actor: str | None = None
-    target_actor: str | None = None
-    location_name: str | None = None
-    latitude: float | None = None
-    longitude: float | None = None
-    means: str | None = None
-    target_type: str | None = None
-    damage_summary: str | None = None
-    tactical_assessment: str | None = None
-    strategic_assessment: str | None = None
-    confidence: float = 0.5
-    verified_status: str = "unverified"
-    is_high_impact: bool = False
-    created_at: str | None = None
-
-
-class DocumentIn(BaseModel):
-    title: str
-    url: str
-    publisher: str
-    published_at: str | None = None
-    language: str = "en"
-    query_used: str | None = None
-    raw_text: str
-    content_hash: str
-    event_signature: str | None = None
-    source_reliability: float = 0.5
-    ingestion_time: str | None = None
-    incidents: list[IncidentIn] = []
-
-
-class ImportPayload(BaseModel):
-    schema_version: int = 1
-    exported_at: str | None = None
-    documents: list[DocumentIn]
-
-
-@router.post("/admin/import")
-def admin_import(payload: ImportPayload, request: Request, db: Session = Depends(get_db)):
-    """로컬 DB 덤프(JSON)를 받아 dedup 통과 항목만 upsert.
-
-    호출 예:
-        # 로컬에서:
-        python3 scripts/export_local_db.py
-        curl -sS -X POST -H 'X-Admin-Token: $ADMIN_TOKEN' \\
-             -H 'Content-Type: application/json' \\
-             --data-binary @db_export.json \\
-             https://iran-osint-web.onrender.com/admin/import
-
-    Dedup 기준 (셋 중 하나라도 일치하면 SKIP):
-      - URL 동일
-      - content_hash 동일
-      - event_signature 동일 (제목 prefix + 같은 날)
-    """
-    require_admin(request)
-    from app.models.entities import Incident, SourceDocument
-    from app.services.news_ingestor import GoogleNewsRSSIngestor
-    from datetime import datetime as _dt
-    from sqlalchemy import or_ as _or_
-
-    def _parse_dt(s: str | None) -> _dt | None:
-        if not s:
-            return None
-        try:
-            return _dt.fromisoformat(s.replace("Z", "+00:00"))
-        except Exception:
-            return None
-
-    docs_inserted = 0
-    incs_inserted = 0
-    docs_skipped = 0
-    ingestor = GoogleNewsRSSIngestor.__new__(GoogleNewsRSSIngestor)
-    ingestor.db = db  # _event_signature 호출용 (DB 안 씀)
-
-    for d in payload.documents:
-        # event_signature 가 누락된 경우 제목+날짜로 생성
-        sig = d.event_signature
-        published_at = _parse_dt(d.published_at)
-        if not sig:
-            sig = ingestor._event_signature(d.title, published_at)
-
-        # 중복 체크 — URL/content_hash/event_signature 어떤 것이라도 매치되면 skip
-        clauses = [SourceDocument.url == d.url,
-                   SourceDocument.content_hash == d.content_hash]
-        if sig:
-            clauses.append(SourceDocument.event_signature == sig)
-        existing = db.query(SourceDocument.id).filter(_or_(*clauses)).first()
-        if existing:
-            docs_skipped += 1
-            continue
-
-        doc = SourceDocument(
-            title=d.title,
-            url=d.url,
-            publisher=d.publisher,
-            published_at=published_at,
-            language=d.language,
-            query_used=d.query_used,
-            raw_text=d.raw_text,
-            content_hash=d.content_hash,
-            event_signature=sig,
-            source_reliability=d.source_reliability,
-            ingestion_time=_parse_dt(d.ingestion_time) or _dt.utcnow(),
-        )
-        db.add(doc)
-        try:
-            db.flush()
-        except Exception:
-            db.rollback()
-            docs_skipped += 1
-            continue
-        docs_inserted += 1
-
-        for inc_in in d.incidents:
-            inc = Incident(
-                document_id=doc.id,
-                event_type=inc_in.event_type,
-                actor=inc_in.actor,
-                target_actor=inc_in.target_actor,
-                location_name=inc_in.location_name,
-                latitude=inc_in.latitude,
-                longitude=inc_in.longitude,
-                means=inc_in.means,
-                target_type=inc_in.target_type,
-                damage_summary=inc_in.damage_summary,
-                tactical_assessment=inc_in.tactical_assessment,
-                strategic_assessment=inc_in.strategic_assessment,
-                confidence=inc_in.confidence,
-                verified_status=inc_in.verified_status,
-                is_high_impact=inc_in.is_high_impact,
-                created_at=_parse_dt(inc_in.created_at) or _dt.utcnow(),
-            )
-            db.add(inc)
-            incs_inserted += 1
-
-    db.commit()
-    return {
-        "status": "ok",
-        "message": (
-            f"Import 완료. 문서: 신규 {docs_inserted}건 / 중복 {docs_skipped}건, "
-            f"사건: 신규 {incs_inserted}건"
-        ),
-        "documents_inserted": docs_inserted,
-        "documents_skipped": docs_skipped,
-        "incidents_inserted": incs_inserted,
-    }
-
-
-@router.post("/pipeline/reset")
-def reset_pipeline(request: Request, db: Session = Depends(get_db)):
-    """⚠️ 위험: 모든 incident/document 를 삭제한 뒤 검증된 시드(VERIFIED_EVENTS)만 재적재.
-    누적된 cron 노이즈로 DB 가 지저분해진 경우 한 번에 깨끗한 상태로 복구하는 용도.
-
-    호출 예: curl -X POST -H 'X-Admin-Token: $ADMIN_TOKEN' \\
-              https://iran-osint-web.onrender.com/pipeline/reset
-
-    필요한 권한:
-      - PUBLIC_MODE=1 환경(=배포)에서는 X-Admin-Token 헤더 필수
-      - 로컬은 인증 없이 통과
-    """
-    require_admin(request)
-
-    from app.models.entities import Incident, SourceDocument, PageView, Feedback  # noqa: F401
-    from app.services.seed_data import seed_sample_data
-    from sqlalchemy import func
-
-    update_status(state="running", step="기존 데이터 삭제 중", message="incident/document 전체 삭제…")
-    before_inc = db.query(func.count(Incident.id)).scalar() or 0
-    before_doc = db.query(func.count(SourceDocument.id)).scalar() or 0
-
-    # 외래키 의존: Incident → SourceDocument 순으로 삭제
-    db.query(Incident).delete(synchronize_session=False)
-    db.query(SourceDocument).delete(synchronize_session=False)
-    db.commit()
-
-    update_status(state="running", step="검증 시드 재적재 중", message="VERIFIED_EVENTS 다시 삽입…")
-    seed_result = seed_sample_data(db, force=True)
-
-    update_status(state="running", step="지도 생성 중", message="시드만으로 지도 재생성…")
-    MapService(db).build_map()
-
-    update_status(state="running", step="브리핑 작성 중", message="시드만으로 브리핑 재생성…")
-    BriefingService(db).build_daily_html()
-
-    metrics = build_dashboard_metrics(db)
-    final = {
-        "status": "ok",
-        "message": (
-            f"DB 재설정 완료. 삭제: 사건 {before_inc}건, 문서 {before_doc}건 → "
-            f"시드 적재: 사건 {seed_result.get('incidents_inserted', 0)}건, "
-            f"문서 {seed_result.get('documents_inserted', 0)}건"
-        ),
-        "deleted": {"incidents": before_inc, "documents": before_doc},
-        "seeded": seed_result,
         "totals": metrics,
     }
     set_last_result(final)

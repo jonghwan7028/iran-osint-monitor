@@ -32,8 +32,6 @@ def _migrate_schema():
         ("feedbacks", "ip_hash", "VARCHAR(64)"),
         ("page_views", "ip_hash", "VARCHAR(64)"),
         ("page_views", "user_agent", "VARCHAR(500)"),
-        # 사건-수준 dedup용 (같은 사건의 다른 출판사 보도를 묶기 위함)
-        ("source_documents", "event_signature", "VARCHAR(64)"),
     ]
     with engine.connect() as conn:
         for table, column, col_type in migrations:

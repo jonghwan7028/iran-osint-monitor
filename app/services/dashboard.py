@@ -84,7 +84,7 @@ def build_dashboard_metrics(db: Session, days: int = DEFAULT_WINDOW_DAYS) -> dic
     # 지도 표시용은 전체 데이터 사용
     all_incidents = get_all_incidents(db)
     all_docs = get_all_documents(db)
-    verified = [inc for inc, _ in all_incidents if inc.verified_status in {'verified', 'partially_verified'}]
+    verified = [inc for inc, _ in all_incidents if inc.verified_status in {'verified', 'confirmed', 'partially_verified', 'likely'}]
     exact_mappable = [inc for inc, _ in all_incidents if inc.latitude is not None and inc.longitude is not None]
     fallback = max(len(all_incidents) - len(exact_mappable), 0)
     return {

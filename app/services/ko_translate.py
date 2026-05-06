@@ -641,19 +641,6 @@ def translate_title(title: str | None) -> str:
     return translate_sentence(title)
 
 
-def _i18n_ko(text: str | None) -> str:
-    """긴 문장(=영어 잔존이 많을 가능성)에 한해 i18n.translate('ko') 로 사전+MT 폴백 사용.
-    순환 임포트 방지를 위해 함수 내부에서 import."""
-    if not text:
-        return "-"
-    try:
-        from app.services import i18n
-        return i18n.translate(text, "ko")
-    except Exception:
-        # i18n 실패 시 기존 사전 기반 폴백
-        return translate_sentence(text)
-
-
 def build_bilingual_incident(inc: Any, doc: Any, actor_side: str) -> dict[str, Any]:
     """지도 팝업·대시보드에서 바로 쓸 수 있는 KO/EN 이중 dict 반환."""
     pub_date = ""
@@ -695,10 +682,9 @@ def build_bilingual_incident(inc: Any, doc: Any, actor_side: str) -> dict[str, A
             "strategic_assessment": inc.strategic_assessment or "-",
             "verified_status": inc.verified_status or "-",
         },
-        # 한국어 번역 — 긴 문장(damage/tactical/strategic/title)은 i18n.translate 로 라우팅하여
-        # 사전이 영어를 많이 남길 경우 자동으로 Google MT 폴백을 받는다.
+        # 한국어 번역
         "ko": {
-            "title": _i18n_ko(doc.title) if doc else "",
+            "title": translate_title(doc.title) if doc else "",
             "publisher": doc.publisher if doc else "",
             "url": doc.url if doc else "#",
             "actor": translate_actor(inc.actor),
@@ -707,9 +693,9 @@ def build_bilingual_incident(inc: Any, doc: Any, actor_side: str) -> dict[str, A
             "event_type": translate_event_type(inc.event_type),
             "means": translate_means(inc.means),
             "target_type": translate_target_type(inc.target_type),
-            "damage_summary": _i18n_ko(inc.damage_summary),
-            "tactical_assessment": _i18n_ko(inc.tactical_assessment),
-            "strategic_assessment": _i18n_ko(inc.strategic_assessment),
+            "damage_summary": translate_sentence(inc.damage_summary),
+            "tactical_assessment": translate_sentence(inc.tactical_assessment),
+            "strategic_assessment": translate_sentence(inc.strategic_assessment),
             "verified_status": translate_verified_status(inc.verified_status),
         },
         "latitude": inc.latitude,

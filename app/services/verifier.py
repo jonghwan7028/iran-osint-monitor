@@ -110,14 +110,27 @@ class VerificationService:
         score = max(0.05, min(score, 0.99))
 
         # 5단계 확정도 판정
+        # 증거 요소 수 — 여러 요소가 충족될수록 검증 수준이 높아짐
+        positive_factors = [f for f in factors if f not in ("counter_report_exists", "retraction_detected", "claim_only")]
+        factor_strength = len(positive_factors)
+
         if evidence["has_retraction"]:
             status = "retracted"
         elif evidence["has_dispute"]:
             status = "disputed"
-        elif score >= 0.8 and "official_confirmation" in factors:
+        elif score >= 0.85 and "official_confirmation" in factors:
+            # 공식 확인 + 높은 점수 → 확인됨
             status = "confirmed"
-        elif score >= 0.6:
+        elif score >= 0.80 and factor_strength >= 4:
+            # 공식 확인 키워드 없어도, 신뢰도 높은 출처 + 행위자/수단/위치/피해 모두 식별 → 확인됨
+            status = "confirmed"
+        elif score >= 0.70 and factor_strength >= 3:
+            # 다수 증거 요소 + 중간 이상 점수 → 유력
             status = "likely"
+        elif score >= 0.50:
+            status = "likely"
+        elif evidence["has_claim"] and factor_strength <= 2:
+            status = "claimed"
         else:
             status = "claimed"
 
