@@ -108,6 +108,53 @@ def _startup_seed():
         db.close()
 
 
+def _startup_translation_warmup():
+    """앱 시작 시 번역 캐시를 백그라운드 스레드로 채운다.
+
+    누적된 모든 사건의 텍스트를 7개 언어로 미리 번역해 translations 테이블에
+    저장한다. 한 번 채우면 재배포·재시작 후에도 DB에서 즉시 재사용된다.
+    앱 부팅을 막지 않도록 데몬 스레드로 실행한다.
+    """
+    import threading
+
+    def _worker():
+        import time
+        time.sleep(8)  # 시드/서버 기동 안정화 대기
+        try:
+            from app.services import translation_cache
+            from app.models.entities import Incident
+
+            db = SessionLocal()
+            try:
+                incidents = db.query(Incident).all()
+                sentences: list[str] = []
+                shorts: list[str] = []
+                for inc in incidents:
+                    for t in (inc.damage_summary, inc.tactical_assessment,
+                              inc.strategic_assessment):
+                        if t:
+                            sentences.append(t)
+                    for t in (inc.location_name, inc.means, inc.actor,
+                              inc.target_actor):
+                        if t:
+                            shorts.append(t)
+            finally:
+                db.close()
+
+            logger.info("번역 워밍업 시작 — 문장 %d건, 단문 %d건",
+                        len(sentences), len(shorts))
+            # 문장: 한국어 포함 6개 언어 / 단문: 한국어는 사전 사용하므로 5개 언어
+            translation_cache.warmup(sentences, ["ko", "es", "zh", "ja", "fr", "de"])
+            translation_cache.warmup(shorts, ["es", "zh", "ja", "fr", "de"])
+            logger.info("번역 워밍업 종료 — 캐시 %d개 항목",
+                        translation_cache.cache_size())
+        except Exception as e:
+            logger.warning("번역 워밍업 스레드 실패: %s", e, exc_info=True)
+
+    threading.Thread(target=_worker, daemon=True, name="translation-warmup").start()
+    logger.info("번역 워밍업 스레드 예약됨")
+
+
 def _startup_scheduler():
     """앱 시작 시 백그라운드 스케줄러 등록."""
     global _scheduler
@@ -142,6 +189,7 @@ def _shutdown_scheduler():
 async def lifespan(app: FastAPI):
     """FastAPI lifespan: startup/shutdown 대체 (deprecation 경고 해소)."""
     _startup_seed()
+    _startup_translation_warmup()
     _startup_scheduler()
     yield
     _shutdown_scheduler()

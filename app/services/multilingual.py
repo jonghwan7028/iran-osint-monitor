@@ -15,6 +15,22 @@ from app.services.ko_translate import (
 )
 
 
+def _cached_mt(text: str | None, lang: str) -> str:
+    """사전에 없는 짧은 표현을 DB 영구 캐시 + 기계번역으로 처리.
+
+    번역에 실패하면 원문(영어)을 그대로 반환한다.
+    """
+    if not text:
+        return text or ""
+    if lang == "en":
+        return text
+    try:
+        from app.services import translation_cache
+        return translation_cache.translate(text, lang)
+    except Exception:
+        return text
+
+
 # ─── Actor translations (WHO) ───
 ACTOR_TRANSLATIONS: dict[str, dict[str, str]] = {
     "United States": {"ko": "미국", "es": "Estados Unidos", "zh": "美国", "ja": "米国", "fr": "États-Unis", "de": "USA"},
@@ -111,7 +127,8 @@ def translate_actor_ml(actor: str | None, lang: str) -> str:
     for key, translations in sorted(ACTOR_TRANSLATIONS.items(), key=lambda kv: -len(kv[0])):
         if key.lower() in actor.lower():
             return translations.get(lang, actor)
-    return actor
+    # 사전 미등록 행위자 — DB 영구 캐시 + 기계번역
+    return _cached_mt(actor, lang)
 
 
 def translate_means_ml(means: str | None, lang: str) -> str:
@@ -129,7 +146,8 @@ def translate_means_ml(means: str | None, lang: str) -> str:
     for key, translations in sorted(MEANS_TRANSLATIONS.items(), key=lambda kv: -len(kv[0])):
         if key in lower:
             return translations.get(lang, means)
-    return means
+    # 사전 미등록 공격수단 — DB 영구 캐시 + 기계번역
+    return _cached_mt(means, lang)
 
 
 def translate_location_ml(location: str | None, lang: str) -> str:
@@ -147,7 +165,8 @@ def translate_location_ml(location: str | None, lang: str) -> str:
             import re
             result = re.sub(re.escape(key), translations.get(lang, key), result, flags=re.IGNORECASE)
             return result
-    return location
+    # 사전 미등록 위치 — DB 영구 캐시 + 기계번역
+    return _cached_mt(location, lang)
 
 
 def translate_status_ml(status: str | None, lang: str) -> str:
@@ -1351,12 +1370,10 @@ def translate_sentence_ml(text: str | None, lang: str) -> str:
         if result:
             return result
 
-    # For unregistered sentences, use deep-translator as fallback
+    # 미등록 문장 — DB 영구 캐시 + 기계번역.
+    # 한 번 번역하면 translations 테이블에 저장되어 재배포 후에도 재사용된다.
     try:
-        from deep_translator import GoogleTranslator
-        lang_map = {"es": "es", "zh": "zh-CN", "ja": "ja", "fr": "fr", "de": "de"}
-        target = lang_map.get(lang, lang)
-        translated = GoogleTranslator(source="en", target=target).translate(text)
-        return translated or text
+        from app.services import translation_cache
+        return translation_cache.translate(text, lang)
     except Exception:
         return text

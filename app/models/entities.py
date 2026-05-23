@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -48,6 +48,30 @@ class Incident(Base):
     is_high_impact: Mapped[bool] = mapped_column(Boolean, default=False)
 
     document: Mapped[SourceDocument] = relationship(back_populates="incidents")
+
+
+class Translation(Base):
+    """기계번역 결과 영구 캐시.
+
+    Render의 파일시스템은 휘발성(재배포·재시작 시 초기화)이므로 JSON 캐시는
+    유지되지 않는다. 번역 결과를 DB에 저장하면 한 번 번역한 문장은
+    재배포·재시작 후에도 영구히 재사용된다.
+
+    source_hash + lang 조합으로 조회한다.
+    """
+    __tablename__ = "translations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    source_hash: Mapped[str] = mapped_column(String(40), nullable=False, index=True)  # 원문 SHA1
+    lang: Mapped[str] = mapped_column(String(8), nullable=False, index=True)          # ko/es/zh/ja/fr/de
+    source_text: Mapped[str] = mapped_column(Text, nullable=False)                    # 원문(영어, 디버그용)
+    translated_text: Mapped[str] = mapped_column(Text, nullable=False)                # 번역 결과
+    engine: Mapped[str | None] = mapped_column(String(20), nullable=True, default="google")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        Index("ix_translations_hash_lang", "source_hash", "lang"),
+    )
 
 
 class PageView(Base):

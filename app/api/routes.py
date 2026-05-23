@@ -729,3 +729,67 @@ def seed_data(request: Request, db: Session = Depends(get_db)):
     set_last_result(final)
     update_status(state="completed", step="완료", message=final["message"])
     return final
+
+
+# ──────────────────────────────────────────────
+# 번역 캐시 — 누적 데이터 다국어 번역
+# ──────────────────────────────────────────────
+@router.get("/api/translations/status")
+def translations_status(db: Session = Depends(get_db)):
+    """번역 캐시 현황 — 언어별 저장된 번역 수."""
+    from sqlalchemy import func
+    from app.models.entities import Translation, Incident
+
+    by_lang = dict(
+        db.query(Translation.lang, func.count(Translation.id))
+        .group_by(Translation.lang)
+        .all()
+    )
+    total = db.query(func.count(Translation.id)).scalar() or 0
+    inc_count = db.query(func.count(Incident.id)).scalar() or 0
+    return {
+        "total_cached": total,
+        "by_language": by_lang,
+        "incidents_in_db": inc_count,
+        "note": "번역은 DB에 영구 저장되어 재배포 후에도 유지됩니다.",
+    }
+
+
+@router.post("/admin/translate")
+def admin_translate(request: Request, db: Session = Depends(get_db)):
+    """누적된 모든 사건을 7개 언어로 번역해 캐시를 채운다 (백그라운드 실행).
+
+    이미 번역된 항목은 건너뛰므로 여러 번 호출해도 안전하다.
+    진행 상황은 GET /api/translations/status 로 확인한다.
+    """
+    require_admin(request)
+    import threading
+    from app.models.entities import Incident
+
+    incidents = db.query(Incident).all()
+    sentences: list[str] = []
+    shorts: list[str] = []
+    for inc in incidents:
+        for t in (inc.damage_summary, inc.tactical_assessment, inc.strategic_assessment):
+            if t:
+                sentences.append(t)
+        for t in (inc.location_name, inc.means, inc.actor, inc.target_actor):
+            if t:
+                shorts.append(t)
+
+    def _worker():
+        from app.services import translation_cache
+        try:
+            translation_cache.warmup(sentences, ["ko", "es", "zh", "ja", "fr", "de"])
+            translation_cache.warmup(shorts, ["es", "zh", "ja", "fr", "de"])
+        except Exception:
+            pass
+
+    threading.Thread(target=_worker, daemon=True, name="admin-translate").start()
+    return {
+        "status": "started",
+        "message": "번역 워밍업을 백그라운드에서 시작했습니다. 진행 상황은 /api/translations/status 로 확인하세요.",
+        "incidents": len(incidents),
+        "sentences_queued": len(sentences),
+        "short_terms_queued": len(shorts),
+    }

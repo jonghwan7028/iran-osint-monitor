@@ -601,9 +601,24 @@ def translate_location(location_name: str | None) -> str:
     return result
 
 
+def _korean_ratio(s: str | None) -> float:
+    """문자열에서 한글이 차지하는 비율 (한글 글자 수 / 전체 알파벳류 글자 수)."""
+    if not s:
+        return 0.0
+    hangul = sum(1 for ch in s if "가" <= ch <= "힣")
+    letters = sum(1 for ch in s if ch.isalpha())
+    if letters == 0:
+        return 1.0
+    return hangul / letters
+
+
 def translate_sentence(text: str | None) -> str:
-    """긴 영어 문장을 한국어로 번역. 사전에 완전 일치가 있으면 바로 반환하고,
-    없으면 주요 고유명사·용어를 한국어로 바꿉니다."""
+    """긴 영어 문장을 한국어로 번역.
+
+    1) 완전 일치 사전(시드 데이터) — 자연스러운 한국어
+    2) DB 영구 캐시 + 기계번역 — 누적 수집된 미등록 문장 대응
+    3) 고유명사·군사용어 치환 폴백 — 번역이 모두 실패했을 때
+    """
     if not text:
         return "-"
 
@@ -616,7 +631,19 @@ def translate_sentence(text: str | None) -> str:
     if stripped in SENTENCE_KO:
         return SENTENCE_KO[stripped]
 
-    # 2) 미등록 문장: 고유명사/군사용어만 치환 (전치사·관사는 치환하지 않음)
+    # 2) 미등록 문장 — DB 영구 캐시 + 기계번역.
+    #    뉴스에서 새로 수집된 사건은 사전에 없으므로 기계번역으로 처리한다.
+    #    한 번 번역하면 translations 테이블에 저장되어 재배포 후에도 재사용된다.
+    try:
+        from app.services import translation_cache
+        mt = translation_cache.translate(text, "ko")
+        # 번역 실패 시 원문(영어)이 그대로 돌아오므로 한글 비율로 성공 여부 판정
+        if mt and mt != text and _korean_ratio(mt) >= 0.30:
+            return mt
+    except Exception:
+        pass
+
+    # 3) 번역 실패 시 폴백 — 고유명사/군사용어만 치환 (전치사·관사는 치환하지 않음)
     result = text
     for en, ko in sorted(PHRASE_REPLACEMENTS, key=lambda kv: -len(kv[0])):
         if not en:

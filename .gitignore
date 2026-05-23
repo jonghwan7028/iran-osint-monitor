@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# 로컬 SQLite DB (운영은 PostgreSQL 사용)
+app/data/*.db
+*.sqlite
+*.sqlite3
+
+# 가상환경
+venv/
+.venv/
+env/
+
+# 에디터 / OS
+.vscode/
+.idea/
+.DS_Store
