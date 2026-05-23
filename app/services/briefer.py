@@ -280,26 +280,9 @@ class BriefingService:
         incident_pairs = get_all_incidents(self.db)
         incidents = [inc for inc, _ in incident_pairs]
 
-        # ── 번역 캐시 워밍업 ──
-        # 렌더링할 사건의 문장을 미리 7개 언어로 번역해 DB 캐시에 저장한다.
-        # 이미 캐시에 있으면 건너뛰므로 평소에는 거의 비용이 없다.
-        try:
-            from app.services import translation_cache
-            _warm_sentences: list[str] = []
-            _warm_shorts: list[str] = []
-            for _inc, _doc in incident_pairs[:30]:
-                for _t in (_inc.damage_summary, _inc.tactical_assessment,
-                           _inc.strategic_assessment):
-                    if _t:
-                        _warm_sentences.append(_t)
-                for _t in (_inc.location_name, _inc.means, _inc.actor,
-                           _inc.target_actor):
-                    if _t:
-                        _warm_shorts.append(_t)
-            translation_cache.warmup(_warm_sentences, ["ko", "es", "zh", "ja", "fr", "de"])
-            translation_cache.warmup(_warm_shorts, ["es", "zh", "ja", "fr", "de"])
-        except Exception:
-            pass
+        # 번역은 전적으로 캐시에서만 읽는다(translation_cache.translate 기본값).
+        # 실제 번역(Google 호출)은 백그라운드 워밍업이 담당하므로
+        # 이 빌드 함수는 네트워크 호출 없이 빠르게 끝난다.
 
         # Stats — 7개 언어별 카운터 생성
         actor_counters: dict[str, Counter] = {}

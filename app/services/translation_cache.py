@@ -181,11 +181,16 @@ def _google(text: str, lang: str) -> str | None:
 # ──────────────────────────────────────────────────────────────────
 # 공개 API
 # ──────────────────────────────────────────────────────────────────
-def translate(text: str | None, lang: str) -> str:
+def translate(text: str | None, lang: str, *, allow_remote: bool = False) -> str:
     """캐시 우선 번역.
 
-    캐시에 있으면 즉시 반환, 없으면 Google 번역 후 저장한다.
-    번역이 완전히 실패하면 원문(영어)을 그대로 반환한다.
+    기본값(allow_remote=False)은 **캐시 전용** — 웹 요청 처리 중에는 절대
+    Google을 동기 호출하지 않는다. 캐시에 없으면 원문(영어)을 즉시 반환하고,
+    실제 번역은 백그라운드 워밍업(warmup)이 채운다. 이렇게 해야 페이지
+    로딩이 번역 네트워크 호출 때문에 느려지지 않는다.
+
+    allow_remote=True 면 캐시 미스 시 즉석 Google 번역까지 수행한다
+    (백그라운드 작업 전용).
     """
     if not text or not text.strip():
         return text or ""
@@ -194,6 +199,8 @@ def translate(text: str | None, lang: str) -> str:
     cached = get_cached(text, lang)
     if cached is not None:
         return cached
+    if not allow_remote:
+        return text  # 캐시 전용 — 요청을 막지 않는다
     out = _google(text, lang)
     if out and out.strip() and out.strip() != text.strip():
         _store([(text, lang, out)])
@@ -241,11 +248,34 @@ def warmup(
             if len(pending) >= batch:
                 _store(pending)
                 pending = []
+                time.sleep(0.4)  # Google 속도제한 완화
     if pending:
         _store(pending)
 
     log.info("번역 워밍업 완료: %s", stats)
     return stats
+
+
+def warmup_incidents(db) -> dict:
+    """DB의 모든 사건 텍스트를 번역 캐시에 채운다 (백그라운드 전용).
+
+    문장(피해·전술·전략 평가)은 7개 언어, 단문(위치·수단·행위자)은
+    한국어를 제외한 5개 언어로 번역한다.
+    """
+    from app.models.entities import Incident
+
+    sentences: list[str] = []
+    shorts: list[str] = []
+    for inc in db.query(Incident).all():
+        for t in (inc.damage_summary, inc.tactical_assessment, inc.strategic_assessment):
+            if t:
+                sentences.append(t)
+        for t in (inc.location_name, inc.means, inc.actor, inc.target_actor):
+            if t:
+                shorts.append(t)
+    s1 = warmup(sentences, ["ko", "es", "zh", "ja", "fr", "de"])
+    s2 = warmup(shorts, ["es", "zh", "ja", "fr", "de"])
+    return {"sentences": s1, "shorts": s2}
 
 
 def cache_size() -> int:

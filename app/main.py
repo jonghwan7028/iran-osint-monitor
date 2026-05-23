@@ -62,6 +62,7 @@ def _run_pipeline_job():
     from app.services.extractor import IncidentExtractor
     from app.services.mapper import MapService
     from app.services.briefer import BriefingService
+    from app.services import translation_cache
 
     logger.info("Pipeline run started at %s", datetime.now(timezone.utc).isoformat())
     db = SessionLocal()
@@ -83,7 +84,14 @@ def _run_pipeline_job():
         backfilled = extractor.backfill_missing_locations()
         logger.info("Backfilled %d locations", backfilled)
 
-        # 4) 지도 + 브리핑 재생성
+        # 4) 신규 사건 번역 워밍업 (백그라운드 잡 — 시간 제약 없음)
+        try:
+            tstats = translation_cache.warmup_incidents(db)
+            logger.info("Translation warmup: %s", tstats)
+        except Exception as e:
+            logger.warning("Translation warmup failed: %s", e)
+
+        # 5) 지도 + 브리핑 재생성
         MapService(db).build_map()
         BriefingService(db).build_daily_html()
         logger.info("Map + Briefing regenerated successfully")
@@ -122,32 +130,15 @@ def _startup_translation_warmup():
         time.sleep(8)  # 시드/서버 기동 안정화 대기
         try:
             from app.services import translation_cache
-            from app.models.entities import Incident
 
+            logger.info("번역 워밍업 시작 (백그라운드)")
             db = SessionLocal()
             try:
-                incidents = db.query(Incident).all()
-                sentences: list[str] = []
-                shorts: list[str] = []
-                for inc in incidents:
-                    for t in (inc.damage_summary, inc.tactical_assessment,
-                              inc.strategic_assessment):
-                        if t:
-                            sentences.append(t)
-                    for t in (inc.location_name, inc.means, inc.actor,
-                              inc.target_actor):
-                        if t:
-                            shorts.append(t)
+                stats = translation_cache.warmup_incidents(db)
             finally:
                 db.close()
-
-            logger.info("번역 워밍업 시작 — 문장 %d건, 단문 %d건",
-                        len(sentences), len(shorts))
-            # 문장: 한국어 포함 6개 언어 / 단문: 한국어는 사전 사용하므로 5개 언어
-            translation_cache.warmup(sentences, ["ko", "es", "zh", "ja", "fr", "de"])
-            translation_cache.warmup(shorts, ["es", "zh", "ja", "fr", "de"])
-            logger.info("번역 워밍업 종료 — 캐시 %d개 항목",
-                        translation_cache.cache_size())
+            logger.info("번역 워밍업 종료 — 캐시 %d개 항목 (%s)",
+                        translation_cache.cache_size(), stats)
         except Exception as e:
             logger.warning("번역 워밍업 스레드 실패: %s", e, exc_info=True)
 
