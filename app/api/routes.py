@@ -578,14 +578,22 @@ def get_incidents(db: Session = Depends(get_db)):
 
 @router.get("/map")
 def get_map(db: Session = Depends(get_db)):
-    path = MapService(db).build_map()
-    return FileResponse(path)
+    # 미리 생성해 둔 지도 파일을 즉시 서빙한다.
+    # 요청마다 558개 사건 전체로 재빌드하면 응답이 끝나지 않으므로,
+    # 재생성은 백그라운드(6시간 파이프라인 잡·/pipeline/* 호출)에서만 한다.
+    path = Path("app/static/incidents_map.html")
+    if not path.exists():
+        MapService(db).build_map()
+    return FileResponse(str(path))
 
 
 @router.get("/brief/daily")
 def get_daily_brief(db: Session = Depends(get_db)):
-    path = BriefingService(db).build_daily_html()
-    return FileResponse(path)
+    # 미리 생성해 둔 브리핑 파일을 즉시 서빙한다(요청마다 재빌드하지 않음).
+    path = Path("app/static/daily_brief.html")
+    if not path.exists():
+        BriefingService(db).build_daily_html()
+    return FileResponse(str(path))
 
 
 @router.get("/api/glossary")
@@ -793,3 +801,34 @@ def admin_translate(request: Request, db: Session = Depends(get_db)):
         "sentences_queued": len(sentences),
         "short_terms_queued": len(shorts),
     }
+
+
+# ──────────────────────────────────────────────
+# 이벤트 중복 제거
+# ──────────────────────────────────────────────
+@router.post("/admin/dedup")
+def admin_dedup(
+    request: Request,
+    threshold: float = Query(0.5, ge=0.3, le=0.9, description="제목 유사도 임계값 (낮을수록 적극 병합)"),
+    db: Session = Depends(get_db),
+):
+    """누적된 중복 사건을 제거한다.
+
+    같은 실제 사건을 여러 언론사가 보도해 생긴 중복을 제목 유사도로
+    묶어 대표 1건만 남긴다. 정리 후 지도·브리핑을 재생성한다.
+    여러 번 호출해도 안전하다.
+    """
+    require_admin(request)
+    from app.services.dedup import dedup_incidents
+
+    result = dedup_incidents(db, jaccard_threshold=threshold)
+
+    # 정리 후 지도·브리핑 출력물 재생성
+    try:
+        MapService(db).build_map()
+        BriefingService(db).build_daily_html()
+        result["outputs_rebuilt"] = True
+    except Exception as e:
+        result["outputs_rebuilt"] = False
+        result["rebuild_warning"] = str(e)
+    return result

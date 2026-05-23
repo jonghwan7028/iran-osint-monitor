@@ -485,8 +485,12 @@ class MapService:
                 '</div>'
             )
 
+        # 안전 임베드: 기사 텍스트에 '</script>' 같은 문자열이 들어 있어도
+        # <script> 태그가 조기 종료되어 지도 전체가 깨지지 않도록 '</' 를 이스케이프.
+        # JSON에서 '\/' 는 '/' 의 유효한 표기이므로 데이터는 그대로 유지된다.
+        incidents_json = json.dumps(events, ensure_ascii=False).replace("</", "<\\/")
         html = (MAP_TEMPLATE
-                .replace("__INCIDENTS_JSON__", json.dumps(events, ensure_ascii=False))
+                .replace("__INCIDENTS_JSON__", incidents_json)
                 .replace("__EMPTY_BANNER__", empty_banner))
 
         path = Path(output_path)

@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.entities import SourceDocument
+from app.services.dedup import event_signature
 from app.services.utils import (
     canonicalize_url,
     normalize_whitespace,
@@ -240,10 +241,21 @@ class GoogleNewsRSSIngestor:
         inserted = 0
         duplicate_in_feed = 0
         duplicate_in_db = 0
+        duplicate_event = 0
         fetch_failures = 0
         seen_keys: set[str] = set()
         seen_hashes: set[str] = set()
+        seen_signatures: set[str] = set()
         network_error = False
+
+        # 이벤트 서명 — 이미 DB에 있는 문서들의 제목 서명을 미리 적재한다.
+        # 같은 사건을 다룬 다른 언론사 기사가 새로 들어와도 차단된다.
+        existing_signatures: set[str] = set()
+        try:
+            for (existing_title,) in self.db.query(SourceDocument.title).all():
+                existing_signatures.add(event_signature(existing_title))
+        except Exception:
+            pass
 
         try:
             google_candidates, google_stats = self._iter_google_entries(queries, max_per_query=max_per_query, days=days)
@@ -289,6 +301,14 @@ class GoogleNewsRSSIngestor:
             }
 
         for item in candidates:
+            # 이벤트 서명 기반 같은-사건 중복 차단 — 멀티 언론사가 동일 사건을
+            # 보도해도 한 건만 수집한다. 기사 본문을 받아오기 전에 걸러 시간도 절약.
+            signature = event_signature(item["title"])
+            if signature in seen_signatures or signature in existing_signatures:
+                duplicate_event += 1
+                continue
+            seen_signatures.add(signature)
+
             resolved_url = self._resolve_final_url(item["preferred_link"]) if item["preferred_link"] else ""
             canonical_url, raw_text = self._fetch_article(resolved_url) if resolved_url else ("", "")
             canonical_url = canonicalize_url(canonical_url or resolved_url or item["preferred_link"] or item["raw_link"])
@@ -336,6 +356,7 @@ class GoogleNewsRSSIngestor:
             "gdelt_entries_seen": gdelt_stats["gdelt_entries_seen"],
             "duplicate_in_feed": duplicate_in_feed,
             "duplicate_in_db": duplicate_in_db,
+            "duplicate_event": duplicate_event,
             "fetch_failures": fetch_failures + google_stats["fetch_failures"] + gdelt_stats["gdelt_failures"],
             "sources": {
                 "google": google_stats,

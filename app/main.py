@@ -84,6 +84,16 @@ def _run_pipeline_job():
         backfilled = extractor.backfill_missing_locations()
         logger.info("Backfilled %d locations", backfilled)
 
+        # 3.5) 이벤트 중복 제거 — 같은 사건의 멀티 언론사 중복을 정리
+        try:
+            from app.services.dedup import dedup_incidents
+            dd = dedup_incidents(db)
+            logger.info("Dedup: %d → %d (removed %d, %d clusters)",
+                        dd["incidents_before"], dd["incidents_after"],
+                        dd["duplicates_removed"], dd["duplicate_clusters"])
+        except Exception as e:
+            logger.warning("Dedup failed: %s", e)
+
         # 4) 신규 사건 번역 워밍업 (백그라운드 잡 — 시간 제약 없음)
         try:
             tstats = translation_cache.warmup_incidents(db)
@@ -130,7 +140,23 @@ def _startup_translation_warmup():
         time.sleep(8)  # 시드/서버 기동 안정화 대기
         try:
             from app.services import translation_cache
+            from app.services.mapper import MapService
+            from app.services.briefer import BriefingService
 
+            # 1) 지도·브리핑 출력 파일을 먼저 생성한다.
+            #    /map·/brief/daily 는 이 파일을 그대로 서빙하므로,
+            #    파일이 미리 있어야 방문자가 빈 화면을 보지 않는다.
+            db = SessionLocal()
+            try:
+                MapService(db).build_map()
+                BriefingService(db).build_daily_html()
+                logger.info("지도·브리핑 초기 출력물 생성 완료")
+            except Exception as e:
+                logger.warning("초기 출력물 생성 실패: %s", e)
+            finally:
+                db.close()
+
+            # 2) 번역 캐시 워밍업 (시간이 오래 걸리는 백그라운드 작업)
             logger.info("번역 워밍업 시작 (백그라운드)")
             db = SessionLocal()
             try:
