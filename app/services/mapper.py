@@ -282,6 +282,21 @@ if (bounds.length > 0) {
   map.setView([28.0, 49.0], 4);
 }
 
+// iframe 안에서 컨테이너 크기가 늦게 확정되면 Leaflet 이 0x0 으로 초기화되어
+// 지도가 빈 화면이 된다. 로드 완료·지연 후 크기를 다시 측정해 재렌더링한다.
+function _recalcMapSize() {
+  try {
+    map.invalidateSize(true);
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 7 });
+    }
+  } catch (e) {}
+}
+window.addEventListener('load', _recalcMapSize);
+setTimeout(_recalcMapSize, 300);
+setTimeout(_recalcMapSize, 1200);
+setTimeout(_recalcMapSize, 3000);
+
 const LEGEND_I18N = {
   ko: {title:'범 례', iran:'이란/대리세력 공격', us:'미국/이스라엘 타격', other:'기타 (외교·정치)'},
   en: {title:'Legend', iran:'Iran / Proxy Attack', us:'US / Israel Strike', other:'Other (Diplomatic)'}
@@ -347,6 +362,9 @@ const highlightedLayers = [];
 window.addEventListener('message', (e) => {
   const msg = e.data;
   if (!msg || !msg.type) return;
+
+  // 부모(홈페이지)에서 메시지가 오면 컨테이너 크기를 다시 측정한다.
+  try { map.invalidateSize(true); } catch (_) {}
 
   if (msg.type === 'setLang') {
     const lang = (msg.lang === 'ko') ? 'ko' : 'en';

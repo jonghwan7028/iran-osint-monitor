@@ -584,7 +584,8 @@ def get_map(db: Session = Depends(get_db)):
     path = Path("app/static/incidents_map.html")
     if not path.exists():
         MapService(db).build_map()
-    return FileResponse(str(path))
+    # no-store: 브라우저가 옛 지도를 캐시해 iframe 에 빈 화면을 띄우는 것을 방지
+    return FileResponse(str(path), headers={"Cache-Control": "no-store"})
 
 
 @router.get("/brief/daily")
@@ -593,7 +594,7 @@ def get_daily_brief(db: Session = Depends(get_db)):
     path = Path("app/static/daily_brief.html")
     if not path.exists():
         BriefingService(db).build_daily_html()
-    return FileResponse(str(path))
+    return FileResponse(str(path), headers={"Cache-Control": "no-store"})
 
 
 @router.get("/api/glossary")
