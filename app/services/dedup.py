@@ -20,8 +20,18 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+from datetime import datetime, timezone
 
 log = logging.getLogger("osint.dedup")
+
+
+def _norm_dt(dt: datetime | None) -> datetime | None:
+    """발행일을 timezone-aware UTC 로 정규화."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
 
 # 불용어 + 언론사명 + 뉴스 상투어 — 이벤트 식별에 무의미한 토큰
 _STOP: frozenset[str] = frozenset({
@@ -107,12 +117,21 @@ def _quality(rec: dict) -> tuple:
     )
 
 
-def dedup_incidents(db, *, jaccard_threshold: float = 0.5) -> dict:
+def dedup_incidents(
+    db,
+    *,
+    jaccard_threshold: float = 0.5,
+    date_window_days: int = 3,
+) -> dict:
     """DB에 이미 쌓인 중복 사건을 제거한다.
 
     제목 토큰 자카드 유사도로 같은 이벤트를 클러스터링하고, 클러스터마다
     가장 품질이 좋은 사건 하나만 남긴 뒤 나머지 사건과 그 원본 문서를
     삭제한다. (문서를 함께 지워야 다음 추출 때 사건이 되살아나지 않는다.)
+
+    발행일이 date_window_days 보다 더 차이나면 제목이 비슷해도 병합하지
+    않는다 — 날짜만 다른 정기 보고서(예: "Iran Update May 1" vs "May 11")가
+    잘못 합쳐지는 것을 막는다.
 
     여러 번 호출해도 안전하며, 결과 통계와 병합 샘플을 반환한다.
     """
@@ -136,6 +155,7 @@ def dedup_incidents(db, *, jaccard_threshold: float = 0.5) -> dict:
             "toks": title_tokens(title),
             "side": get_actor_side(inc.actor or ""),
             "rel": float((doc.source_reliability if doc else 0.0) or 0.0),
+            "date": _norm_dt(doc.published_at if doc else None),
         })
 
     # ── union-find 로 같은 이벤트끼리 묶기 ──
@@ -152,11 +172,13 @@ def dedup_incidents(db, *, jaccard_threshold: float = 0.5) -> dict:
         if ra != rb:
             parent[rb] = ra
 
+    window_sec = date_window_days * 86400
     for i in range(n):
         ti = recs[i]["toks"]
         if len(ti) < 3:
             continue  # 토큰이 너무 적은 사건은 제목만으로 병합하지 않음
         si = recs[i]["side"]
+        di = recs[i]["date"]
         for j in range(i + 1, n):
             if find(i) == find(j):
                 continue
@@ -166,6 +188,10 @@ def dedup_incidents(db, *, jaccard_threshold: float = 0.5) -> dict:
             # 진영(이란측/미국측/기타)이 다르면 병합하지 않음 (단, 기타는 허용)
             sj = recs[j]["side"]
             if si != sj and "other" not in (si, sj):
+                continue
+            # 발행일이 창(window)보다 더 차이나면 같은 사건으로 보지 않는다.
+            dj = recs[j]["date"]
+            if di and dj and abs((di - dj).total_seconds()) > window_sec:
                 continue
             if jaccard(ti, tj) >= jaccard_threshold:
                 union(i, j)
@@ -207,6 +233,7 @@ def dedup_incidents(db, *, jaccard_threshold: float = 0.5) -> dict:
         "incidents_after": n - removed,
         "duplicate_clusters": dup_clusters,
         "jaccard_threshold": jaccard_threshold,
+        "date_window_days": date_window_days,
         "samples": samples,
     }
     log.info("이벤트 중복제거: %d → %d (%d건 제거, %d개 클러스터)",

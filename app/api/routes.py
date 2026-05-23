@@ -810,18 +810,19 @@ def admin_translate(request: Request, db: Session = Depends(get_db)):
 def admin_dedup(
     request: Request,
     threshold: float = Query(0.5, ge=0.3, le=0.9, description="제목 유사도 임계값 (낮을수록 적극 병합)"),
+    window: int = Query(3, ge=1, le=30, description="같은 사건으로 볼 최대 발행일 차이(일)"),
     db: Session = Depends(get_db),
 ):
     """누적된 중복 사건을 제거한다.
 
     같은 실제 사건을 여러 언론사가 보도해 생긴 중복을 제목 유사도로
-    묶어 대표 1건만 남긴다. 정리 후 지도·브리핑을 재생성한다.
-    여러 번 호출해도 안전하다.
+    묶어 대표 1건만 남긴다. 발행일이 window 일보다 차이나면 병합하지
+    않는다. 정리 후 지도·브리핑을 재생성한다. 여러 번 호출해도 안전하다.
     """
     require_admin(request)
     from app.services.dedup import dedup_incidents
 
-    result = dedup_incidents(db, jaccard_threshold=threshold)
+    result = dedup_incidents(db, jaccard_threshold=threshold, date_window_days=window)
 
     # 정리 후 지도·브리핑 출력물 재생성
     try:
