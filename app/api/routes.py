@@ -834,3 +834,37 @@ def admin_dedup(
         result["outputs_rebuilt"] = False
         result["rebuild_warning"] = str(e)
     return result
+
+
+@router.post("/admin/cleanup")
+def admin_cleanup(
+    request: Request,
+    dry_run: bool = Query(True, description="true면 분석만, false면 실제 삭제"),
+    threshold: float = Query(0.5, ge=0.3, le=0.9, description="제목 유사도 임계값"),
+    window: int = Query(3, ge=1, le=30, description="같은 사건으로 볼 최대 발행일 차이(일)"),
+    db: Session = Depends(get_db),
+):
+    """사건 목록 종합 정리 — 불필요(정크) 기사 + 중복을 함께 제거한다.
+
+    - 정크: 라운드업·해설·오피니언 기사, 행위자·수단·표적이 모두 없는 사건
+    - 중복: 제목 유사도 클러스터링 (날짜가 멀어도 매우 유사하면 '재탕'으로 병합)
+
+    기본은 dry_run=true — 무엇이 지워질지 분석 리포트만 반환한다.
+    실제로 정리하려면 ?dry_run=false 로 호출한다.
+    """
+    require_admin(request)
+    from app.services.dedup import cleanup_incidents
+
+    result = cleanup_incidents(
+        db, dry_run=dry_run, jaccard_threshold=threshold, date_window_days=window
+    )
+
+    if not dry_run:
+        try:
+            MapService(db).build_map()
+            BriefingService(db).build_daily_html()
+            result["outputs_rebuilt"] = True
+        except Exception as e:
+            result["outputs_rebuilt"] = False
+            result["rebuild_warning"] = str(e)
+    return result

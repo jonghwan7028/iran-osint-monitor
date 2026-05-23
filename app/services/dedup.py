@@ -239,3 +239,203 @@ def dedup_incidents(
     log.info("이벤트 중복제거: %d → %d (%d건 제거, %d개 클러스터)",
              n, n - removed, removed, dup_clusters)
     return result
+
+
+# ──────────────────────────────────────────────────────────────────
+# 불필요(정크) 기사 탐지 — 개별 사건이 아닌 라운드업·해설·오피니언
+# ──────────────────────────────────────────────────────────────────
+_JUNK_PATTERNS: list[tuple[str, str]] = [
+    ("roundup",
+     r"latest developments|live updates?|liveblog|live blog|as it happened|"
+     r"as it unfolds|what we know|what to know|here'?s what|key takeaways?|"
+     r"\brecap\b|minute[- ]by[- ]minute|in pictures|in photos|in maps|"
+     r"your questions answered|day \d+ of the war"),
+    ("explainer",
+     r"\bexplained\b|\bexplainer\b|^what is |^what are |^who is |^who are |"
+     r"^why is |^why are |^why did |^how does |^how did |^how is |"
+     r"a guide to|everything you need to know"),
+    ("opinion",
+     r"^opinion\b|opinion:|\| opinion|analysis:|^analysis |editorial|"
+     r"^comment:|viewpoint|^column:"),
+    ("listicle",
+     r"\b\d+ things\b|things to know|things you"),
+]
+_JUNK_COMPILED = [(cat, re.compile(pat, re.IGNORECASE)) for cat, pat in _JUNK_PATTERNS]
+
+
+def is_junk_title(title: str | None) -> str | None:
+    """제목이 '개별 사건'이 아니라 라운드업·해설·오피니언이면 카테고리명을,
+    아니면 None 을 반환한다."""
+    if not title:
+        return None
+    for cat, rx in _JUNK_COMPILED:
+        if rx.search(title):
+            return cat
+    return None
+
+
+def cleanup_incidents(
+    db,
+    *,
+    dry_run: bool = True,
+    jaccard_threshold: float = 0.5,
+    date_window_days: int = 3,
+    cross_date_threshold: float = 0.78,
+    drop_junk: bool = True,
+) -> dict:
+    """사건 목록 종합 정리 — 불필요(정크) 기사 + 중복을 한 번에 정리한다.
+
+    1) 정크 제거: 라운드업·해설·오피니언 기사, 그리고 행위자·수단·표적이
+       모두 없는 '내용 없음' 사건.
+    2) 중복 제거: 제목 유사도로 같은 사건을 묶어 대표 1건만 남긴다.
+       - 발행일이 가까우면(date_window_days 이내) 유사도 0.5 이상 병합
+       - 발행일이 멀어도 유사도가 매우 높으면(cross_date_threshold 이상)
+         병합 — '최근 기사가 과거 사건을 재탕'한 경우를 잡는다.
+
+    dry_run=True 면 무엇이 지워질지 분석 리포트만 반환하고 삭제는 하지 않는다.
+    """
+    from app.models.entities import Incident, SourceDocument
+    from app.services.seed_data import get_actor_side
+
+    incidents = db.query(Incident).all()
+    n = len(incidents)
+
+    recs: list[dict] = []
+    for inc in incidents:
+        doc = (
+            db.query(SourceDocument)
+            .filter(SourceDocument.id == inc.document_id)
+            .first()
+        )
+        title = (doc.title if doc else "") or ""
+        junk_cat = is_junk_title(title) if drop_junk else None
+        # 행위자·수단·표적유형이 모두 없으면 사건으로서 내용이 없다고 본다.
+        if drop_junk and junk_cat is None and not (inc.actor or inc.means or inc.target_type):
+            junk_cat = "low_content"
+        recs.append({
+            "inc": inc,
+            "doc": doc,
+            "title": title,
+            "toks": title_tokens(title),
+            "side": get_actor_side(inc.actor or ""),
+            "rel": float((doc.source_reliability if doc else 0.0) or 0.0),
+            "date": _norm_dt(doc.published_at if doc else None),
+            "junk": junk_cat,
+        })
+
+    junk_recs = [r for r in recs if r["junk"]]
+    keep_recs = [r for r in recs if not r["junk"]]
+
+    junk_by_cat: dict[str, int] = {}
+    junk_samples: list[dict] = []
+    _per_cat: dict[str, int] = {}
+    for r in junk_recs:
+        c = r["junk"]
+        junk_by_cat[c] = junk_by_cat.get(c, 0) + 1
+        _per_cat[c] = _per_cat.get(c, 0) + 1
+        if _per_cat[c] <= 4:
+            junk_samples.append({"category": c, "title": r["title"][:100]})
+
+    # ── 정크를 제외한 사건들에 대해 중복 클러스터링 ──
+    m = len(keep_recs)
+    parent = list(range(m))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[rb] = ra
+
+    window_sec = date_window_days * 86400
+    for i in range(m):
+        ti = keep_recs[i]["toks"]
+        if len(ti) < 3:
+            continue
+        si = keep_recs[i]["side"]
+        di = keep_recs[i]["date"]
+        for j in range(i + 1, m):
+            if find(i) == find(j):
+                continue
+            tj = keep_recs[j]["toks"]
+            if len(tj) < 3:
+                continue
+            sj = keep_recs[j]["side"]
+            if si != sj and "other" not in (si, sj):
+                continue
+            sim = jaccard(ti, tj)
+            if sim < jaccard_threshold:
+                continue
+            dj = keep_recs[j]["date"]
+            within = (not (di and dj)) or abs((di - dj).total_seconds()) <= window_sec
+            # 날짜가 가까우면 일반 임계값, 멀면 고유사도(재탕)일 때만 병합
+            if within or sim >= cross_date_threshold:
+                union(i, j)
+
+    clusters: dict[int, list[int]] = {}
+    for i in range(m):
+        clusters.setdefault(find(i), []).append(i)
+
+    dup_remove: list[int] = []
+    dup_samples: list[dict] = []
+    dup_clusters = 0
+    for members in clusters.values():
+        if len(members) <= 1:
+            continue
+        dup_clusters += 1
+        members.sort(key=lambda idx: _quality(keep_recs[idx]), reverse=True)
+        drop = members[1:]
+        if len(dup_samples) < 10:
+            dup_samples.append({
+                "kept_title": keep_recs[members[0]]["title"][:100],
+                "removed": len(drop),
+                "removed_titles": [keep_recs[d]["title"][:100] for d in drop[:3]],
+            })
+        dup_remove.extend(drop)
+
+    junk_count = len(junk_recs)
+    dup_count = len(dup_remove)
+    after = n - junk_count - dup_count
+
+    report: dict = {
+        "mode": "dry_run" if dry_run else "executed",
+        "total_incidents": n,
+        "junk": {
+            "total": junk_count,
+            "by_category": junk_by_cat,
+            "samples": junk_samples,
+        },
+        "duplicates": {
+            "total": dup_count,
+            "clusters": dup_clusters,
+            "samples": dup_samples,
+        },
+        "incidents_after": after,
+    }
+
+    if dry_run:
+        report["note"] = (
+            "dry_run — 실제 삭제는 하지 않았습니다. 위 분석을 확인한 뒤 "
+            "?dry_run=false 로 실제 정리를 실행하세요."
+        )
+        log.info("cleanup(dry_run): 전체 %d, 정크 %d, 중복 %d → %d 예상",
+                 n, junk_count, dup_count, after)
+        return report
+
+    # ── 실제 삭제 ──
+    to_delete = list(junk_recs) + [keep_recs[i] for i in dup_remove]
+    removed = 0
+    for r in to_delete:
+        db.delete(r["inc"])
+        if r["doc"]:
+            db.delete(r["doc"])
+        removed += 1
+    db.commit()
+    report["removed"] = removed
+    report["note"] = f"{removed}건 삭제 완료 (정크 {junk_count} + 중복 {dup_count})."
+    log.info("cleanup: %d → %d (정크 %d, 중복 %d)", n, after, junk_count, dup_count)
+    return report
